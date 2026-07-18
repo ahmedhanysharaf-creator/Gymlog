@@ -1,0 +1,397 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>GymLog — Workout Tracker</title>
+  <meta name="description" content="Track your gym workouts, log exercises by body part and equipment, and monitor your training progress with GymLog.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+  <meta name="theme-color" content="#06060b">
+</head>
+<body>
+  <div class="app">
+
+    <!-- ========== VIEW: LOGIN ========== -->
+    <section id="view-login" class="view">
+      <div class="login-container">
+        <div class="login-logo">
+          <div class="login-logo-icon">
+            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M6.5 6.5h11M6.5 17.5h11"/>
+              <path d="M4 10V4h3v16H4v-6M20 10V4h-3v16h3v-6"/>
+            </svg>
+          </div>
+          <h1 class="login-title">GymLog</h1>
+        </div>
+        <p class="login-subtitle">Track your gains, crush your goals.</p>
+        <p class="login-desc">Sign in to sync your workouts across all your devices.</p>
+
+        <button id="btn-google-signin" class="signin-btn">
+          <svg class="google-icon" width="20" height="20" viewBox="0 0 48 48">
+            <path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/>
+            <path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/>
+            <path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/>
+            <path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/>
+            <path fill="none" d="M0 0h48v48H0z"/>
+          </svg>
+          <span class="signin-btn-text">Sign in with Google</span>
+        </button>
+
+        <p class="login-footer">Your data is private and securely stored in the cloud.</p>
+      </div>
+    </section>
+
+    <!-- ========== VIEW: LOADING ========== -->
+    <section id="view-loading" class="view">
+      <div class="loading-container">
+        <div class="loading-spinner"></div>
+        <p class="loading-text">Loading your workouts...</p>
+      </div>
+    </section>
+
+    <!-- ========== VIEW: HOME ========== -->
+    <section id="view-home" class="view">
+      <div class="home-header">
+        <div class="logo">
+          <div class="logo-icon">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M6.5 6.5h11M6.5 17.5h11"/>
+              <path d="M4 10V4h3v16H4v-6M20 10V4h-3v16h3v-6"/>
+            </svg>
+          </div>
+          <h1>GymLog</h1>
+        </div>
+        <div class="user-bar">
+          <img id="user-avatar" class="user-avatar" src="" alt="Avatar" style="display:none;">
+          <span id="user-display-name" class="user-name"></span>
+          <button id="btn-sign-out" class="btn-sign-out" aria-label="Sign out" title="Sign out">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/>
+              <polyline points="16 17 21 12 16 7"/>
+              <line x1="21" y1="12" x2="9" y2="12"/>
+            </svg>
+          </button>
+        </div>
+      </div>
+      <p class="home-subtitle">Track your gains, crush your goals.</p>
+
+      <div id="calendar-container"></div>
+
+      <button id="btn-new-workout" class="fab" aria-label="New Workout">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M12 5v14M5 12h14"/>
+        </svg>
+      </button>
+    </section>
+
+    <!-- ========== VIEW: DATE SELECTION ========== -->
+    <section id="view-date" class="view">
+      <div class="view-header">
+        <button class="btn-back" data-back="home" aria-label="Go back">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M19 12H5M12 19l-7-7 7-7"/>
+          </svg>
+        </button>
+        <h2>Select Date</h2>
+      </div>
+
+      <div class="date-section">
+        <button id="btn-today" class="quick-date-btn">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
+            <line x1="16" y1="2" x2="16" y2="6"/>
+            <line x1="8" y1="2" x2="8" y2="6"/>
+            <line x1="3" y1="10" x2="21" y2="10"/>
+          </svg>
+          Today
+        </button>
+
+        <div class="date-input-wrapper">
+          <input type="date" id="input-date" aria-label="Workout date">
+        </div>
+
+        <button id="btn-date-continue" class="btn btn-primary btn-full mt-16">
+          Continue
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M5 12h14M12 5l7 7-7 7"/>
+          </svg>
+        </button>
+      </div>
+    </section>
+
+    <!-- ========== VIEW: BODY PART ========== -->
+    <section id="view-body-part" class="view">
+      <div class="view-header">
+        <button class="btn-back" data-back="date" aria-label="Go back">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M19 12H5M12 19l-7-7 7-7"/>
+          </svg>
+        </button>
+        <h2>Body Part</h2>
+      </div>
+      <div class="breadcrumb" id="breadcrumb-body-part"></div>
+
+      <div class="card-grid two-col">
+        <!-- Upper Body -->
+        <div class="selection-card" data-body="upper" id="card-upper">
+          <div class="card-icon">
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="12" cy="5" r="3"/>
+              <path d="M12 8v5"/>
+              <path d="M8 10l-3 5"/>
+              <path d="M16 10l3 5"/>
+              <path d="M10 21l2-8 2 8"/>
+            </svg>
+          </div>
+          <span class="card-title">Upper Body</span>
+          <span class="card-desc">Chest, back, shoulders, arms</span>
+        </div>
+
+        <!-- Lower Body -->
+        <div class="selection-card" data-body="lower" id="card-lower">
+          <div class="card-icon">
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M12 2v6"/>
+              <path d="M9 8h6"/>
+              <path d="M10 8l-1 6-2 8"/>
+              <path d="M14 8l1 6 2 8"/>
+              <path d="M7 14h2M15 14h2"/>
+            </svg>
+          </div>
+          <span class="card-title">Lower Body</span>
+          <span class="card-desc">Quads, hamstrings, glutes, calves</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- ========== VIEW: EQUIPMENT TYPE ========== -->
+    <section id="view-equipment" class="view">
+      <div class="view-header">
+        <button class="btn-back" data-back="body-part" aria-label="Go back">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M19 12H5M12 19l-7-7 7-7"/>
+          </svg>
+        </button>
+        <h2>Equipment Type</h2>
+      </div>
+      <div class="breadcrumb" id="breadcrumb-equipment"></div>
+
+      <div class="card-grid two-col">
+        <!-- Machine -->
+        <div class="selection-card" data-equip="machine" id="card-machine">
+          <div class="card-icon">
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="12" cy="12" r="3"/>
+              <path d="M12 1v4M12 19v4"/>
+              <path d="M4.22 4.22l2.83 2.83M16.95 16.95l2.83 2.83"/>
+              <path d="M1 12h4M19 12h4"/>
+              <path d="M4.22 19.78l2.83-2.83M16.95 7.05l2.83-2.83"/>
+            </svg>
+          </div>
+          <span class="card-title">Machine</span>
+          <span class="card-desc">Guided movements</span>
+        </div>
+
+        <!-- Free Weight -->
+        <div class="selection-card" data-equip="freeweight" id="card-freeweight">
+          <div class="card-icon">
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M6.5 6.5h11M6.5 17.5h11"/>
+              <path d="M4 10V4h3v16H4v-6"/>
+              <path d="M20 10V4h-3v16h3v-6"/>
+            </svg>
+          </div>
+          <span class="card-title">Free Weight</span>
+          <span class="card-desc">Dumbbells, barbells</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- ========== VIEW: CATEGORY (Upper Machine only) ========== -->
+    <section id="view-category" class="view">
+      <div class="view-header">
+        <button class="btn-back" data-back="equipment" aria-label="Go back">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M19 12H5M12 19l-7-7 7-7"/>
+          </svg>
+        </button>
+        <h2>Category</h2>
+      </div>
+      <div class="breadcrumb" id="breadcrumb-category"></div>
+
+      <div class="card-grid">
+        <!-- Push -->
+        <div class="selection-card" data-category="push" id="card-push">
+          <div class="card-icon">
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M5 12h14M12 5l7 7-7 7"/>
+            </svg>
+          </div>
+          <span class="card-title">Push</span>
+          <span class="card-desc">Chest, shoulders, triceps</span>
+        </div>
+
+        <!-- Pull -->
+        <div class="selection-card" data-category="pull" id="card-pull">
+          <div class="card-icon">
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M19 12H5M12 19l-7-7 7-7"/>
+            </svg>
+          </div>
+          <span class="card-title">Pull</span>
+          <span class="card-desc">Back, biceps, rear delts</span>
+        </div>
+
+        <!-- Core -->
+        <div class="selection-card" data-category="core" id="card-core">
+          <div class="card-icon">
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="12" cy="12" r="10"/>
+              <circle cx="12" cy="12" r="4"/>
+              <circle cx="12" cy="12" r="1"/>
+            </svg>
+          </div>
+          <span class="card-title">Core</span>
+          <span class="card-desc">Abs, obliques, lower back</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- ========== VIEW: EXERCISE LIST ========== -->
+    <section id="view-exercises" class="view">
+      <div class="view-header">
+        <button class="btn-back" id="btn-back-exercises" aria-label="Go back">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M19 12H5M12 19l-7-7 7-7"/>
+          </svg>
+        </button>
+        <h2 id="exercises-title">Exercises</h2>
+      </div>
+      <div class="breadcrumb" id="breadcrumb-exercises"></div>
+
+      <div class="search-wrapper">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="11" cy="11" r="8"/>
+          <path d="M21 21l-4.35-4.35"/>
+        </svg>
+        <input type="text" id="search-exercises" class="search-input" placeholder="Search exercises..." autocomplete="off">
+      </div>
+
+      <div id="exercise-list" class="exercise-list"></div>
+
+      <button id="btn-add-custom" class="add-exercise-btn mt-8">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M12 5v14M5 12h14"/>
+        </svg>
+        Add Custom Exercise
+      </button>
+    </section>
+
+    <!-- ========== VIEW: LOG EXERCISE ========== -->
+    <section id="view-log" class="view">
+      <div class="view-header">
+        <button class="btn-back" data-back="exercises" aria-label="Go back">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M19 12H5M12 19l-7-7 7-7"/>
+          </svg>
+        </button>
+        <h2>Log Exercise</h2>
+      </div>
+      <div class="breadcrumb" id="breadcrumb-log"></div>
+
+      <div class="log-form">
+        <div class="log-exercise-name" id="log-exercise-name"></div>
+
+        <!-- Sets -->
+        <div class="sets-section">
+          <h3>Sets</h3>
+          <div id="sets-list" class="sets-list"></div>
+          <button id="btn-add-set" class="btn-add-set mt-8">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M12 5v14M5 12h14"/>
+            </svg>
+            Add Set
+          </button>
+        </div>
+
+        <!-- Pain Level -->
+        <div class="pain-section">
+          <div class="pain-header">
+            <h3>Pain / Effort Level</h3>
+            <span id="pain-value" class="pain-value level-optimal">7</span>
+          </div>
+          <div class="pain-slider-wrapper">
+            <input type="range" id="pain-slider" min="1" max="10" value="7" step="1">
+          </div>
+          <div class="pain-labels">
+            <span>1 — Easy</span>
+            <span>10 — Max</span>
+          </div>
+          <div id="pain-feedback" class="pain-feedback level-optimal">
+            ⚡ Optimal for hypertrophy
+          </div>
+        </div>
+
+        <!-- Save -->
+        <button id="btn-save-workout" class="btn btn-primary btn-full mt-8">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M20 6L9 17l-5-5"/>
+          </svg>
+          Save Workout
+        </button>
+      </div>
+    </section>
+
+    <!-- ========== VIEW: DAY DETAIL ========== -->
+    <section id="view-day-detail" class="view">
+      <div class="view-header">
+        <button class="btn-back" data-back="home" aria-label="Go back">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M19 12H5M12 19l-7-7 7-7"/>
+          </svg>
+        </button>
+        <h2>Workout Details</h2>
+      </div>
+
+      <div id="day-detail-content"></div>
+
+      <button id="btn-add-more" class="btn btn-primary btn-full mt-24">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M12 5v14M5 12h14"/>
+        </svg>
+        Add More Exercises
+      </button>
+    </section>
+
+  </div>
+
+  <!-- Toast -->
+  <div id="toast" class="toast"></div>
+
+  <!-- Modal: Add Custom Exercise -->
+  <div id="modal-overlay" class="modal-overlay hidden">
+    <div class="modal">
+      <h3>Add Custom Exercise</h3>
+      <input type="text" id="custom-exercise-input" placeholder="Enter exercise name..." autocomplete="off">
+      <div class="modal-actions">
+        <button id="btn-modal-cancel" class="btn btn-secondary">Cancel</button>
+        <button id="btn-modal-save" class="btn btn-primary">Add Exercise</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Firebase SDK (compat for no-build-tools setup) -->
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+
+  <!-- App Scripts -->
+  <script src="firebase-config.js"></script>
+  <script src="data.js"></script>
+  <script src="calendar.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
