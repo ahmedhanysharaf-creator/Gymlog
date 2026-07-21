@@ -122,10 +122,70 @@
       </div>
     </section>
 
+    <!-- ========== VIEW: GENERAL WARM-UP ========== -->
+    <section id="view-general-warmup" class="view">
+      <div class="view-header">
+        <button class="btn-back" data-back="date" aria-label="Go back">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M19 12H5M12 19l-7-7 7-7"/>
+          </svg>
+        </button>
+        <h2>Daily Warm-up</h2>
+      </div>
+      <div class="breadcrumb" id="breadcrumb-general-warmup"></div>
+
+      <div class="warmup-selection-container">
+        <p class="warmup-subtitle-text">Choose a quick warm-up or enter a custom one to start your workout session.</p>
+        
+        <div class="warmup-options-grid">
+          <div class="warmup-card" data-warmup="5 min Cycling">
+            <div class="warmup-card-icon">🚲</div>
+            <div class="warmup-card-text">5 min Cycling</div>
+          </div>
+          <div class="warmup-card" data-warmup="10 min Cycling">
+            <div class="warmup-card-icon">🚲</div>
+            <div class="warmup-card-text">10 min Cycling</div>
+          </div>
+          <div class="warmup-card" data-warmup="5 min Treadmill">
+            <div class="warmup-card-icon">🏃</div>
+            <div class="warmup-card-text">5 min Treadmill</div>
+          </div>
+          <div class="warmup-card" data-warmup="10 min Treadmill">
+            <div class="warmup-card-icon">🏃</div>
+            <div class="warmup-card-text">10 min Treadmill</div>
+          </div>
+          <div class="warmup-card" data-warmup="5 min Elliptical">
+            <div class="warmup-card-icon">🚶</div>
+            <div class="warmup-card-text">5 min Elliptical</div>
+          </div>
+          <div class="warmup-card" data-warmup="Dynamic Stretching">
+            <div class="warmup-card-icon">🧘</div>
+            <div class="warmup-card-text">Dynamic Stretching</div>
+          </div>
+        </div>
+
+        <div class="custom-warmup-container mt-16">
+          <label class="custom-warmup-label">Custom Warm-up</label>
+          <input type="text" id="input-custom-warmup" class="custom-warmup-input" placeholder="e.g. 10 min rowing, dynamic stretches..." autocomplete="off">
+        </div>
+
+        <button id="btn-warmup-continue" class="btn btn-primary btn-full mt-24">
+          Save & Continue
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M5 12h14M12 5l7 7-7 7"/>
+          </svg>
+        </button>
+
+        <button id="btn-warmup-skip" class="btn-skip-text mt-16">
+          Skip Warm-up
+        </button>
+      </div>
+    </section>
+
     <!-- ========== VIEW: BODY PART ========== -->
     <section id="view-body-part" class="view">
       <div class="view-header">
-        <button class="btn-back" data-back="date" aria-label="Go back">
+        <button class="btn-back" data-back="general-warmup" aria-label="Go back">
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
             <path d="M19 12H5M12 19l-7-7 7-7"/>
           </svg>

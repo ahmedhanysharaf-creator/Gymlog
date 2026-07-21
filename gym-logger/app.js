@@ -11,7 +11,8 @@ const state = {
   exercise: null,
   sets: [],             // [{ weight: '', reps: '', painLevel: 7 }, ...]
   warmupSets: [],       // [{ weight: '', reps: '' }, ...]
-  showWarmup: false
+  showWarmup: false,
+  generalWarmup: null
 };
 
 let calendarInstance = null;
@@ -111,8 +112,14 @@ function showView(name) {
     case 'date':
       initDate();
       break;
+    case 'general-warmup':
+      initGeneralWarmup();
+      break;
     case 'body-part':
-      updateBreadcrumb('breadcrumb-body-part', [{ label: formatDate(state.date) }]);
+      updateBreadcrumb('breadcrumb-body-part', [
+        { label: formatDate(state.date) },
+        { label: 'Body Part' }
+      ]);
       break;
     case 'equipment':
       updateBreadcrumb('breadcrumb-equipment', [
@@ -259,6 +266,65 @@ function initLog() {
   state.showWarmup = false;
   renderWarmupSection();
   renderSets();
+}
+
+/* ---------- Daily General Warm-up View ---------- */
+function initGeneralWarmup() {
+  updateBreadcrumb('breadcrumb-general-warmup', [{ label: formatDate(state.date) }]);
+
+  // Reset active classes
+  document.querySelectorAll('.warmup-card').forEach(card => card.classList.remove('selected'));
+  document.getElementById('input-custom-warmup').value = '';
+  state.generalWarmup = null;
+
+  // Search if we already logged a warmup for this day
+  const workouts = getWorkoutsByDate(state.date);
+  const existing = workouts.find(w => w.bodyPart === 'warmup');
+  if (existing) {
+    state.generalWarmup = existing.details;
+    let matched = false;
+    document.querySelectorAll('.warmup-card').forEach(card => {
+      if (card.dataset.warmup === existing.details) {
+        card.classList.add('selected');
+        matched = true;
+      }
+    });
+    if (!matched) {
+      document.getElementById('input-custom-warmup').value = existing.details;
+    }
+  }
+}
+
+function saveGeneralWarmup(details) {
+  if (!currentUid) return;
+
+  const workouts = getWorkoutsByDate(state.date);
+  const existing = workouts.find(w => w.bodyPart === 'warmup');
+
+  const workoutData = {
+    date: state.date,
+    bodyPart: 'warmup',
+    equipmentType: 'cardio',
+    category: null,
+    exercise: 'General Warm-up',
+    sets: [],
+    details: details,
+    createdAt: existing ? (existing.createdAt || new Date().toISOString()) : new Date().toISOString()
+  };
+
+  if (existing) {
+    workoutData.id = existing.id;
+    db.collection('users').doc(currentUid).collection('workouts').doc(existing.id)
+      .set(workoutData)
+      .catch(err => console.error('Update general warmup error:', err));
+    
+    const idx = workoutsCache.findIndex(w => w.id === existing.id);
+    if (idx !== -1) {
+      workoutsCache[idx] = workoutData;
+    }
+  } else {
+    saveWorkout(workoutData);
+  }
 }
 
 function renderWarmupSection() {
@@ -438,9 +504,14 @@ function initDayDetail() {
     return;
   }
 
+  // Find general warm-up workout
+  const generalWarmupWorkout = workouts.find(w => w.bodyPart === 'warmup');
+  // Filter out general warm-up from strength groups
+  const strengthWorkouts = workouts.filter(w => w.bodyPart !== 'warmup');
+
   // Group workouts by bodyPart + equipmentType
   const groups = {};
-  workouts.forEach(w => {
+  strengthWorkouts.forEach(w => {
     const key = `${w.bodyPart}-${w.equipmentType}`;
     if (!groups[key]) groups[key] = { bodyPart: w.bodyPart, equipmentType: w.equipmentType, items: [] };
     groups[key].items.push(w);
@@ -448,8 +519,30 @@ function initDayDetail() {
 
   let html = `
     <div class="day-detail-date">${formatDate(state.date)}</div>
-    <div class="day-detail-count">${workouts.length} exercise${workouts.length !== 1 ? 's' : ''} logged</div>
+    <div class="day-detail-count">${workouts.length} item${workouts.length !== 1 ? 's' : ''} logged</div>
   `;
+
+  if (generalWarmupWorkout) {
+    html += `
+      <div class="general-warmup-detail-card">
+        <div class="general-warmup-detail-header">
+          <div class="title-with-icon">
+            <span class="warmup-fire">🔥</span>
+            <span class="warmup-title-text">Daily Warm-up</span>
+          </div>
+          <button class="workout-entry-delete" data-id="${generalWarmupWorkout.id}" aria-label="Delete warm-up">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="3 6 5 6 21 6"/>
+              <path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/>
+            </svg>
+          </button>
+        </div>
+        <div class="general-warmup-detail-content">
+          ${escapeHtml(generalWarmupWorkout.details)}
+        </div>
+      </div>
+    `;
+  }
 
   for (const key of Object.keys(groups)) {
     const group = groups[key];
@@ -586,6 +679,48 @@ function attachListeners() {
       return;
     }
     state.date = val;
+    showView('general-warmup');
+  });
+
+  // General Warm-up: Select card
+  document.querySelectorAll('.warmup-card').forEach(card => {
+    card.addEventListener('click', () => {
+      const selected = card.classList.contains('selected');
+      document.querySelectorAll('.warmup-card').forEach(c => c.classList.remove('selected'));
+      if (!selected) {
+        card.classList.add('selected');
+        state.generalWarmup = card.dataset.warmup;
+        document.getElementById('input-custom-warmup').value = ''; // clear custom
+      } else {
+        state.generalWarmup = null;
+      }
+    });
+  });
+
+  // General Warm-up: Custom text input
+  document.getElementById('input-custom-warmup').addEventListener('input', (e) => {
+    if (e.target.value.trim() !== '') {
+      document.querySelectorAll('.warmup-card').forEach(c => c.classList.remove('selected'));
+      state.generalWarmup = e.target.value.trim();
+    } else {
+      state.generalWarmup = null;
+    }
+  });
+
+  // General Warm-up: Save & Continue
+  document.getElementById('btn-warmup-continue').addEventListener('click', () => {
+    const customVal = document.getElementById('input-custom-warmup').value.trim();
+    const finalWarmup = customVal || state.generalWarmup;
+
+    if (finalWarmup) {
+      saveGeneralWarmup(finalWarmup);
+      showToast('Daily warm-up saved! 🔥', 'toast-success');
+    }
+    showView('body-part');
+  });
+
+  // General Warm-up: Skip
+  document.getElementById('btn-warmup-skip').addEventListener('click', () => {
     showView('body-part');
   });
 

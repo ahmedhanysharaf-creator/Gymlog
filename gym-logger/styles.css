@@ -559,6 +559,193 @@ button {
   border-color: var(--core-border);
 }
 
+/* ---------- Daily General Warm-up View ---------- */
+.warmup-selection-container {
+  padding-top: 10px;
+  display: flex;
+  flex-direction: column;
+}
+
+.warmup-subtitle-text {
+  font-size: 0.88rem;
+  color: var(--text-secondary);
+  line-height: 1.5;
+  margin-bottom: 20px;
+}
+
+.warmup-options-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px;
+}
+
+.warmup-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--r-md);
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  text-align: center;
+  transition: all var(--duration) var(--ease);
+  position: relative;
+  overflow: hidden;
+}
+
+.warmup-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 3px;
+  background: #f97316;
+  opacity: 0;
+  transition: opacity var(--duration) var(--ease);
+}
+
+.warmup-card-icon {
+  font-size: 1.8rem;
+  transition: transform var(--duration) var(--ease);
+}
+
+.warmup-card-text {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--text);
+}
+
+/* Hover & Active States */
+.warmup-card:hover {
+  border-color: rgba(249, 115, 22, 0.25);
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.warmup-card:hover .warmup-card-icon {
+  transform: scale(1.1);
+}
+
+.warmup-card.selected {
+  border-color: rgba(249, 115, 22, 0.6);
+  background: rgba(249, 115, 22, 0.08);
+  box-shadow: 0 0 15px rgba(249, 115, 22, 0.1);
+}
+
+.warmup-card.selected::before {
+  opacity: 1;
+}
+
+.warmup-card.selected .warmup-card-text {
+  color: #f97316;
+}
+
+/* Custom Input Field */
+.custom-warmup-container {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--r-md);
+  padding: 14px;
+  transition: border-color var(--duration) var(--ease);
+}
+
+.custom-warmup-container:focus-within {
+  border-color: rgba(249, 115, 22, 0.4);
+}
+
+.custom-warmup-label {
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-secondary);
+}
+
+.custom-warmup-input {
+  width: 100%;
+  padding: 10px 14px;
+  background: var(--bg-input);
+  border: 1px solid var(--border);
+  border-radius: var(--r-sm);
+  color: var(--text);
+  font-size: 0.95rem;
+  font-weight: 500;
+  transition: all var(--duration) var(--ease);
+}
+
+.custom-warmup-input:focus {
+  outline: none;
+  border-color: rgba(249, 115, 22, 0.4);
+  background: var(--bg-input-focus);
+  box-shadow: 0 0 0 3px rgba(249, 115, 22, 0.08);
+}
+
+/* Skip Button */
+.btn-skip-text {
+  background: transparent;
+  border: none;
+  color: var(--text-muted);
+  font-size: 0.88rem;
+  font-weight: 500;
+  padding: 10px;
+  cursor: pointer;
+  transition: color var(--duration) var(--ease);
+  width: max-content;
+  margin: 0 auto;
+}
+
+.btn-skip-text:hover {
+  color: var(--text-secondary);
+}
+
+/* Day Detail Highlight Card for general warmup */
+.general-warmup-detail-card {
+  background: rgba(249, 115, 22, 0.03);
+  border: 1px solid rgba(249, 115, 22, 0.12);
+  border-left: 3px solid #f97316;
+  border-radius: var(--r-md);
+  padding: 14px 18px;
+  margin-bottom: 20px;
+  animation: slideIn 0.3s var(--ease-bounce);
+}
+
+.general-warmup-detail-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 6px;
+}
+
+.title-with-icon {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.warmup-fire {
+  font-size: 1.1rem;
+}
+
+.warmup-title-text {
+  font-size: 0.85rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #f97316;
+}
+
+.general-warmup-detail-content {
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--text);
+  padding-left: 2px;
+}
+
 /* ---------- Date Picker ---------- */
 .date-section {
   padding-top: 20px;
