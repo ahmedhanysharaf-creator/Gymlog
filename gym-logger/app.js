@@ -9,8 +9,9 @@ const state = {
   equipmentType: null,  // 'machine' | 'freeweight'
   category: null,       // 'push' | 'pull' | 'core' (upper machine only)
   exercise: null,
-  sets: [],             // [{ weight: '', reps: '' }, ...]
-  painLevel: 7
+  sets: [],             // [{ weight: '', reps: '', painLevel: 7 }, ...]
+  warmupSets: [],       // [{ weight: '', reps: '' }, ...]
+  showWarmup: false
 };
 
 let calendarInstance = null;
@@ -252,34 +253,45 @@ function initLog() {
   crumbs.push({ label: state.exercise });
   updateBreadcrumb('breadcrumb-log', crumbs);
 
-  // Initialize sets (start with 1 empty set)
-  state.sets = [{ weight: '', reps: '' }];
+  // Initialize sets (start with 1 empty set, each with its own pain level)
+  state.sets = [{ weight: '', reps: '', painLevel: 7 }];
+  state.warmupSets = [];
+  state.showWarmup = false;
+  renderWarmupSection();
   renderSets();
-
-  // Reset pain level
-  state.painLevel = 7;
-  const slider = document.getElementById('pain-slider');
-  slider.value = 7;
-  updatePainUI(7);
 }
 
-function renderSets() {
-  const container = document.getElementById('sets-list');
-  container.innerHTML = state.sets.map((set, i) => `
-    <div class="set-row" data-index="${i}">
-      <div class="set-number">${i + 1}</div>
+function renderWarmupSection() {
+  const container = document.getElementById('warmup-section');
+  const toggle = document.getElementById('warmup-toggle');
+  const content = document.getElementById('warmup-content');
+
+  toggle.checked = state.showWarmup;
+  content.style.display = state.showWarmup ? 'block' : 'none';
+
+  if (!state.showWarmup) return;
+  renderWarmupSets();
+}
+
+function renderWarmupSets() {
+  const container = document.getElementById('warmup-sets-list');
+  if (!container) return;
+
+  container.innerHTML = state.warmupSets.map((set, i) => `
+    <div class="warmup-set-row" data-index="${i}">
+      <div class="set-number warmup-number">${i + 1}</div>
       <div class="set-inputs">
         <div class="input-group">
           <label>Weight (kg)</label>
-          <input type="number" class="set-weight" value="${set.weight}" placeholder="0" min="0" step="0.5" inputmode="decimal">
+          <input type="number" class="warmup-weight" value="${set.weight}" placeholder="0" min="0" step="0.5" inputmode="decimal">
         </div>
         <div class="input-group">
           <label>Reps</label>
-          <input type="number" class="set-reps" value="${set.reps}" placeholder="0" min="0" inputmode="numeric">
+          <input type="number" class="warmup-reps" value="${set.reps}" placeholder="0" min="0" inputmode="numeric">
         </div>
       </div>
-      ${state.sets.length > 1 ? `
-        <button class="btn-remove-set" data-remove="${i}" aria-label="Remove set">
+      ${state.warmupSets.length > 1 ? `
+        <button class="btn-remove-set btn-remove-warmup" data-remove="${i}" aria-label="Remove warm-up set">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <path d="M18 6L6 18M6 6l12 12"/>
           </svg>
@@ -287,6 +299,65 @@ function renderSets() {
       ` : ''}
     </div>
   `).join('');
+
+  // Attach listeners
+  container.querySelectorAll('.warmup-weight').forEach((input, i) => {
+    input.addEventListener('input', () => { state.warmupSets[i].weight = input.value; });
+  });
+  container.querySelectorAll('.warmup-reps').forEach((input, i) => {
+    input.addEventListener('input', () => { state.warmupSets[i].reps = input.value; });
+  });
+  container.querySelectorAll('.btn-remove-warmup').forEach(btn => {
+    btn.addEventListener('click', () => {
+      state.warmupSets.splice(parseInt(btn.dataset.remove), 1);
+      renderWarmupSets();
+    });
+  });
+}
+
+function renderSets() {
+  const container = document.getElementById('sets-list');
+  container.innerHTML = state.sets.map((set, i) => {
+    const painVal = set.painLevel || 7;
+    const painInfo = getPainInfo(painVal);
+    return `
+    <div class="set-card" data-index="${i}">
+      <div class="set-row">
+        <div class="set-number">${i + 1}</div>
+        <div class="set-inputs">
+          <div class="input-group">
+            <label>Weight (kg)</label>
+            <input type="number" class="set-weight" value="${set.weight}" placeholder="0" min="0" step="0.5" inputmode="decimal">
+          </div>
+          <div class="input-group">
+            <label>Reps</label>
+            <input type="number" class="set-reps" value="${set.reps}" placeholder="0" min="0" inputmode="numeric">
+          </div>
+        </div>
+        ${state.sets.length > 1 ? `
+          <button class="btn-remove-set" data-remove="${i}" aria-label="Remove set">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M18 6L6 18M6 6l12 12"/>
+            </svg>
+          </button>
+        ` : ''}
+      </div>
+      <div class="set-pain">
+        <div class="set-pain-header">
+          <span class="set-pain-label">Effort</span>
+          <span class="set-pain-value ${painInfo.level}">${painVal}</span>
+        </div>
+        <input type="range" class="set-pain-slider" min="1" max="10" value="${painVal}" step="1" data-set="${i}">
+        <div class="set-pain-feedback ${painInfo.level}">${painInfo.label}</div>
+      </div>
+    </div>
+  `;
+  }).join('');
+
+  // Init slider track colors
+  container.querySelectorAll('.set-pain-slider').forEach(slider => {
+    updateSetPainSliderTrack(slider, parseInt(slider.value));
+  });
 
   // Attach listeners for set inputs
   container.querySelectorAll('.set-weight').forEach((input, i) => {
@@ -306,37 +377,31 @@ function renderSets() {
       renderSets();
     });
   });
+  // Pain slider per set
+  container.querySelectorAll('.set-pain-slider').forEach(slider => {
+    slider.addEventListener('input', (e) => {
+      const idx = parseInt(slider.dataset.set);
+      const val = parseInt(e.target.value);
+      state.sets[idx].painLevel = val;
+      const info = getPainInfo(val);
+      const card = slider.closest('.set-card');
+      card.querySelector('.set-pain-value').textContent = val;
+      card.querySelector('.set-pain-value').className = 'set-pain-value ' + info.level;
+      card.querySelector('.set-pain-feedback').textContent = info.label;
+      card.querySelector('.set-pain-feedback').className = 'set-pain-feedback ' + info.level;
+      updateSetPainSliderTrack(slider, val);
+    });
+  });
 }
 
-function updatePainUI(value) {
-  const display = document.getElementById('pain-value');
-  const feedback = document.getElementById('pain-feedback');
-  const slider = document.getElementById('pain-slider');
+function getPainInfo(value) {
+  if (value <= 4) return { level: 'level-low', label: '🟢 Low effort' };
+  if (value <= 6) return { level: 'level-moderate', label: '🟡 Moderate' };
+  if (value <= 8) return { level: 'level-optimal', label: '⚡ Optimal' };
+  return { level: 'level-high', label: '🔴 High risk' };
+}
 
-  display.textContent = value;
-
-  // Determine level
-  let level, label;
-  if (value <= 4) {
-    level = 'level-low';
-    label = '🟢 Low effort — could push harder';
-  } else if (value <= 6) {
-    level = 'level-moderate';
-    label = '🟡 Moderate — decent intensity';
-  } else if (value <= 8) {
-    level = 'level-optimal';
-    label = '⚡ Optimal for hypertrophy';
-  } else {
-    level = 'level-high';
-    label = '🔴 High risk — watch for injury';
-  }
-
-  // Update classes
-  display.className = 'pain-value ' + level;
-  feedback.className = 'pain-feedback ' + level;
-  feedback.textContent = label;
-
-  // Update slider track color
+function updateSetPainSliderTrack(slider, value) {
   const percent = ((value - 1) / 9) * 100;
   const colors = {
     'level-low': '#10b981',
@@ -344,12 +409,12 @@ function updatePainUI(value) {
     'level-optimal': '#f97316',
     'level-high': '#ef4444'
   };
-  const color = colors[level];
+  const info = getPainInfo(value);
+  const color = colors[info.level];
   slider.style.background = `linear-gradient(to right, ${color} 0%, ${color} ${percent}%, rgba(255,255,255,0.04) ${percent}%, rgba(255,255,255,0.04) 100%)`;
-
-  // Update thumb border color
   slider.style.setProperty('--thumb-color', color);
 }
+
 
 /* ---------- Day Detail View ---------- */
 function initDayDetail() {
@@ -400,12 +465,8 @@ function initDayDetail() {
     `;
 
     group.items.forEach(w => {
-      const painLevel = w.painLevel || 0;
-      let painClass;
-      if (painLevel <= 4) painClass = 'level-low';
-      else if (painLevel <= 6) painClass = 'level-moderate';
-      else if (painLevel <= 8) painClass = 'level-optimal';
-      else painClass = 'level-high';
+      // Support both legacy (exercise-level painLevel) and new (per-set painLevel)
+      const hasPerSetPain = w.sets && w.sets.length > 0 && w.sets[0].painLevel !== undefined;
 
       html += `
         <div class="workout-entry">
@@ -418,22 +479,44 @@ function initDayDetail() {
               </svg>
             </button>
           </div>
-          <div class="workout-entry-sets">
-            ${(w.sets || []).map((s, i) => `
-              <div class="workout-set-line">
-                <span class="set-label">Set ${i + 1}</span>
-                <span class="set-detail">${s.weight} kg × ${s.reps} reps</span>
-              </div>
-            `).join('')}
-          </div>
-          <div class="workout-entry-pain">
-            <span class="pain-label">Pain</span>
-            <div class="pain-bar">
-              ${Array.from({ length: 10 }, (_, i) => `
-                <div class="pain-bar-segment ${i < painLevel ? 'filled ' + painClass : ''}"></div>
+          ${(w.warmupSets && w.warmupSets.length > 0) ? `
+            <div class="workout-entry-warmup">
+              <span class="warmup-tag">🔥 Warm-up</span>
+              ${w.warmupSets.map((s, i) => `
+                <div class="workout-set-line warmup-line">
+                  <div class="workout-set-info">
+                    <span class="set-label">W${i + 1}</span>
+                    <span class="set-detail">${s.weight} kg × ${s.reps} reps</span>
+                  </div>
+                </div>
               `).join('')}
             </div>
-            <span style="font-weight:600;font-size:0.8rem;">${painLevel}/10</span>
+          ` : ''}
+          <div class="workout-entry-sets">
+            ${(w.sets || []).map((s, i) => {
+              const setPain = hasPerSetPain ? (s.painLevel || 7) : (w.painLevel || 7);
+              let painClass;
+              if (setPain <= 4) painClass = 'level-low';
+              else if (setPain <= 6) painClass = 'level-moderate';
+              else if (setPain <= 8) painClass = 'level-optimal';
+              else painClass = 'level-high';
+              return `
+              <div class="workout-set-line">
+                <div class="workout-set-info">
+                  <span class="set-label">Set ${i + 1}</span>
+                  <span class="set-detail">${s.weight} kg × ${s.reps} reps</span>
+                </div>
+                <div class="workout-set-pain">
+                  <div class="pain-bar pain-bar-mini">
+                    ${Array.from({ length: 10 }, (_, j) => `
+                      <div class="pain-bar-segment ${j < setPain ? 'filled ' + painClass : ''}"></div>
+                    `).join('')}
+                  </div>
+                  <span class="set-pain-score ${painClass}">${setPain}</span>
+                </div>
+              </div>
+            `;
+            }).join('')}
           </div>
         </div>
       `;
@@ -584,15 +667,28 @@ function attachListeners() {
 
   // Add Set
   document.getElementById('btn-add-set').addEventListener('click', () => {
-    state.sets.push({ weight: '', reps: '' });
+    state.sets.push({ weight: '', reps: '', painLevel: 7 });
     renderSets();
   });
 
-  // Pain slider
-  document.getElementById('pain-slider').addEventListener('input', (e) => {
-    state.painLevel = parseInt(e.target.value);
-    updatePainUI(state.painLevel);
+  // Warm-up toggle
+  document.getElementById('warmup-toggle').addEventListener('change', (e) => {
+    state.showWarmup = e.target.checked;
+    const content = document.getElementById('warmup-content');
+    content.style.display = state.showWarmup ? 'block' : 'none';
+    if (state.showWarmup && state.warmupSets.length === 0) {
+      state.warmupSets.push({ weight: '', reps: '' });
+    }
+    renderWarmupSets();
   });
+
+  // Add Warm-up Set
+  document.getElementById('btn-add-warmup-set').addEventListener('click', () => {
+    state.warmupSets.push({ weight: '', reps: '' });
+    renderWarmupSets();
+  });
+
+  // Pain slider is now handled per-set in renderSets()
 
   // Save Workout
   document.getElementById('btn-save-workout').addEventListener('click', () => {
@@ -603,17 +699,23 @@ function attachListeners() {
       return;
     }
 
+    const validWarmups = state.warmupSets.filter(s => s.weight !== '' && s.reps !== '');
+
     const workout = {
       date: state.date,
       bodyPart: state.bodyPart,
       equipmentType: state.equipmentType,
       category: state.category,
       exercise: state.exercise,
-      sets: validSets.map(s => ({
+      warmupSets: validWarmups.map(s => ({
         weight: parseFloat(s.weight) || 0,
         reps: parseInt(s.reps) || 0
       })),
-      painLevel: state.painLevel
+      sets: validSets.map(s => ({
+        weight: parseFloat(s.weight) || 0,
+        reps: parseInt(s.reps) || 0,
+        painLevel: s.painLevel || 7
+      }))
     };
 
     saveWorkout(workout);

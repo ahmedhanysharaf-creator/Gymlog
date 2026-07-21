@@ -305,9 +305,35 @@
       <div class="log-form">
         <div class="log-exercise-name" id="log-exercise-name"></div>
 
+        <!-- Warm-up -->
+        <div class="warmup-section" id="warmup-section">
+          <div class="warmup-header">
+            <div class="warmup-title">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M12 2c1.5 2 3 4.5 3 7a3 3 0 11-6 0c0-2.5 1.5-5 3-7z"/>
+                <path d="M12 22c-4 0-7-2-7-5 0-3.5 3-6 4.5-8 .5 2 2.5 3 2.5 3s2-1 2.5-3c1.5 2 4.5 4.5 4.5 8 0 3-3 5-7 5z"/>
+              </svg>
+              <span>Warm-up Sets</span>
+            </div>
+            <label class="toggle-switch">
+              <input type="checkbox" id="warmup-toggle">
+              <span class="toggle-slider"></span>
+            </label>
+          </div>
+          <div id="warmup-content" style="display:none;">
+            <div id="warmup-sets-list" class="warmup-sets-list"></div>
+            <button id="btn-add-warmup-set" class="btn-add-set btn-add-warmup mt-8">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M12 5v14M5 12h14"/>
+              </svg>
+              Add Warm-up Set
+            </button>
+          </div>
+        </div>
+
         <!-- Sets -->
         <div class="sets-section">
-          <h3>Sets</h3>
+          <h3>Working Sets</h3>
           <div id="sets-list" class="sets-list"></div>
           <button id="btn-add-set" class="btn-add-set mt-8">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
@@ -317,23 +343,6 @@
           </button>
         </div>
 
-        <!-- Pain Level -->
-        <div class="pain-section">
-          <div class="pain-header">
-            <h3>Pain / Effort Level</h3>
-            <span id="pain-value" class="pain-value level-optimal">7</span>
-          </div>
-          <div class="pain-slider-wrapper">
-            <input type="range" id="pain-slider" min="1" max="10" value="7" step="1">
-          </div>
-          <div class="pain-labels">
-            <span>1 — Easy</span>
-            <span>10 — Max</span>
-          </div>
-          <div id="pain-feedback" class="pain-feedback level-optimal">
-            ⚡ Optimal for hypertrophy
-          </div>
-        </div>
 
         <!-- Save -->
         <button id="btn-save-workout" class="btn btn-primary btn-full mt-8">
