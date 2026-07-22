@@ -135,38 +135,18 @@
       <div class="breadcrumb" id="breadcrumb-general-warmup"></div>
 
       <div class="warmup-selection-container">
-        <p class="warmup-subtitle-text">Choose a quick warm-up or enter a custom one to start your workout session.</p>
+        <p class="warmup-subtitle-text">Select one or more warm-up activities and set duration (min):</p>
         
-        <div class="warmup-options-grid">
-          <div class="warmup-card" data-warmup="5 min Cycling">
-            <div class="warmup-card-icon">🚲</div>
-            <div class="warmup-card-text">5 min Cycling</div>
-          </div>
-          <div class="warmup-card" data-warmup="10 min Cycling">
-            <div class="warmup-card-icon">🚲</div>
-            <div class="warmup-card-text">10 min Cycling</div>
-          </div>
-          <div class="warmup-card" data-warmup="5 min Treadmill">
-            <div class="warmup-card-icon">🏃</div>
-            <div class="warmup-card-text">5 min Treadmill</div>
-          </div>
-          <div class="warmup-card" data-warmup="10 min Treadmill">
-            <div class="warmup-card-icon">🏃</div>
-            <div class="warmup-card-text">10 min Treadmill</div>
-          </div>
-          <div class="warmup-card" data-warmup="5 min Elliptical">
-            <div class="warmup-card-icon">🚶</div>
-            <div class="warmup-card-text">5 min Elliptical</div>
-          </div>
-          <div class="warmup-card" data-warmup="Dynamic Stretching">
-            <div class="warmup-card-icon">🧘</div>
-            <div class="warmup-card-text">Dynamic Stretching</div>
-          </div>
+        <div id="warmup-options-grid" class="warmup-options-grid">
+          <!-- Dynamically populated in app.js -->
         </div>
 
         <div class="custom-warmup-container mt-16">
-          <label class="custom-warmup-label">Custom Warm-up</label>
-          <input type="text" id="input-custom-warmup" class="custom-warmup-input" placeholder="e.g. 10 min rowing, dynamic stretches..." autocomplete="off">
+          <label class="custom-warmup-label">Add Custom Warm-up Activity</label>
+          <div class="custom-warmup-input-row">
+            <input type="text" id="input-custom-warmup" class="custom-warmup-input" placeholder="e.g. Orbtrack, Rowing, Jump Rope..." autocomplete="off">
+            <button id="btn-add-custom-warmup" class="btn btn-secondary btn-sm">Add</button>
+          </div>
         </div>
 
         <button id="btn-warmup-continue" class="btn btn-primary btn-full mt-24">
@@ -270,7 +250,7 @@
       </div>
     </section>
 
-    <!-- ========== VIEW: CATEGORY (Upper Machine only) ========== -->
+    <!-- ========== VIEW: CATEGORY (Upper Body: Push/Pull/Core) ========== -->
     <section id="view-category" class="view">
       <div class="view-header">
         <button class="btn-back" data-back="equipment" aria-label="Go back">
@@ -316,6 +296,56 @@
           </div>
           <span class="card-title">Core</span>
           <span class="card-desc">Abs, obliques, lower back</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- ========== VIEW: LOWER CATEGORY (Lower Body: Muscle Groups) ========== -->
+    <section id="view-lower-category" class="view">
+      <div class="view-header">
+        <button class="btn-back" data-back="equipment" aria-label="Go back">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M19 12H5M12 19l-7-7 7-7"/>
+          </svg>
+        </button>
+        <h2>Muscle Group</h2>
+      </div>
+      <div class="breadcrumb" id="breadcrumb-lower-category"></div>
+
+      <div class="card-grid">
+        <!-- Quads -->
+        <div class="selection-card" data-lower-category="quads" id="card-quads">
+          <div class="card-icon">🍗</div>
+          <span class="card-title">Quads</span>
+          <span class="card-desc">Front thighs & squats</span>
+        </div>
+
+        <!-- Hamstrings -->
+        <div class="selection-card" data-lower-category="hamstrings" id="card-hamstrings">
+          <div class="card-icon">🦵</div>
+          <span class="card-title">Hamstrings</span>
+          <span class="card-desc">Back thighs & RDLs</span>
+        </div>
+
+        <!-- Glutes -->
+        <div class="selection-card" data-lower-category="glutes" id="card-glutes">
+          <div class="card-icon">🍑</div>
+          <span class="card-title">Glutes</span>
+          <span class="card-desc">Hip thrusts & kickbacks</span>
+        </div>
+
+        <!-- Adductors / Abductors -->
+        <div class="selection-card" data-lower-category="adductors" id="card-adductors">
+          <div class="card-icon">↔️</div>
+          <span class="card-title">Adductors / Abductors</span>
+          <span class="card-desc">Inner & outer thighs</span>
+        </div>
+
+        <!-- Calves -->
+        <div class="selection-card" data-lower-category="calves" id="card-calves">
+          <div class="card-icon">👟</div>
+          <span class="card-title">Calves</span>
+          <span class="card-desc">Lower legs & calf raises</span>
         </div>
       </div>
     </section>

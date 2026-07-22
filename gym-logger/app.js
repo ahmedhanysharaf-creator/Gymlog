@@ -7,32 +7,29 @@ const state = {
   date: null,
   bodyPart: null,       // 'upper' | 'lower'
   equipmentType: null,  // 'machine' | 'freeweight'
-  category: null,       // 'push' | 'pull' | 'core' (upper machine only)
+  category: null,       // 'push'|'pull'|'core' OR 'quads'|'hamstrings'|'glutes'|'adductors'|'calves'
   exercise: null,
   sets: [],             // [{ weight: '', reps: '', painLevel: 7 }, ...]
   warmupSets: [],       // [{ weight: '', reps: '' }, ...]
   showWarmup: false,
-  generalWarmup: null
+  selectedWarmups: {}   // { 'Cycling': 10, 'Treadmill': 5 }
 };
 
 let calendarInstance = null;
+let listenersAttached = false;
 
 /* ---------- Authentication ---------- */
 document.addEventListener('DOMContentLoaded', () => {
-  // Attach auth UI listeners immediately
   attachAuthListeners();
 
-  // Listen for auth state changes
   auth.onAuthStateChanged(async (user) => {
     if (user) {
-      // User is signed in — show loading, init data, then show home
       showView('loading');
       await initDataLayer(user.uid);
       showView('home');
       attachListeners();
       updateUserInfo(user);
     } else {
-      // User is signed out — show login
       teardownDataLayer();
       showView('login');
     }
@@ -40,7 +37,6 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 function attachAuthListeners() {
-  // Google Sign-In button
   const btnGoogle = document.getElementById('btn-google-signin');
   if (btnGoogle) {
     btnGoogle.addEventListener('click', async () => {
@@ -51,7 +47,6 @@ function attachAuthListeners() {
       } catch (err) {
         console.error('Google sign-in error:', err);
         if (err.code === 'auth/popup-blocked') {
-          // Fallback to redirect for mobile or popup-blocked browsers
           try {
             await auth.signInWithRedirect(googleProvider);
           } catch (redirectErr) {
@@ -68,7 +63,6 @@ function attachAuthListeners() {
     });
   }
 
-  // Sign-Out button
   const btnSignOut = document.getElementById('btn-sign-out');
   if (btnSignOut) {
     btnSignOut.addEventListener('click', async () => {
@@ -80,9 +74,7 @@ function attachAuthListeners() {
 function updateUserInfo(user) {
   const nameEl = document.getElementById('user-display-name');
   const avatarEl = document.getElementById('user-avatar');
-  if (nameEl) {
-    nameEl.textContent = user.displayName || user.email || 'User';
-  }
+  if (nameEl) nameEl.textContent = user.displayName || user.email || 'User';
   if (avatarEl && user.photoURL) {
     avatarEl.src = user.photoURL;
     avatarEl.style.display = 'block';
@@ -97,14 +89,11 @@ function showView(name) {
   const view = document.getElementById('view-' + name);
   if (!view) return;
 
-  // Re-trigger animation
   view.style.animation = 'none';
   view.offsetHeight; // force reflow
   view.style.animation = '';
-
   view.classList.add('active');
 
-  // View-specific initialization
   switch (name) {
     case 'home':
       initHome();
@@ -131,7 +120,14 @@ function showView(name) {
       updateBreadcrumb('breadcrumb-category', [
         { label: formatDate(state.date) },
         { label: 'Upper Body' },
-        { label: 'Machine' }
+        { label: state.equipmentType === 'machine' ? 'Machine' : 'Free Weight' }
+      ]);
+      break;
+    case 'lower-category':
+      updateBreadcrumb('breadcrumb-lower-category', [
+        { label: formatDate(state.date) },
+        { label: 'Lower Body' },
+        { label: state.equipmentType === 'machine' ? 'Machine' : 'Free Weight' }
       ]);
       break;
     case 'exercises':
@@ -145,7 +141,6 @@ function showView(name) {
       break;
   }
 
-  // Scroll to top
   window.scrollTo(0, 0);
 }
 
@@ -166,30 +161,132 @@ function initDate() {
   input.value = state.date || getTodayStr();
 }
 
+/* ---------- Daily General Warm-up View ---------- */
+function initGeneralWarmup() {
+  updateBreadcrumb('breadcrumb-general-warmup', [{ label: formatDate(state.date) }]);
+
+  const grid = document.getElementById('warmup-options-grid');
+  if (!grid) return;
+
+  // Build combined activities list: defaults + customs
+  const defaults = DEFAULT_WARMUP_ACTIVITIES;
+  const customs = getCustomWarmups().map(c => ({ icon: '🔥', name: c }));
+  const allActivities = [...defaults, ...customs];
+
+  // Load existing warmup if logged today
+  if (Object.keys(state.selectedWarmups).length === 0) {
+    const workouts = getWorkoutsByDate(state.date);
+    const existing = workouts.find(w => w.bodyPart === 'warmup');
+    if (existing && existing.details) {
+      // Parse details string e.g. "Cycling (10 min), Treadmill (5 min)"
+      const parts = existing.details.split(', ');
+      parts.forEach(p => {
+        const match = p.match(/^(.+?)\s*\((\d+)\s*min\)$/);
+        if (match) {
+          state.selectedWarmups[match[1]] = parseInt(match[2]);
+        } else if (p.trim()) {
+          state.selectedWarmups[p.trim()] = 5;
+        }
+      });
+    }
+  }
+
+  renderWarmupCards(allActivities, grid);
+}
+
+function renderWarmupCards(activities, grid) {
+  grid.innerHTML = activities.map(act => {
+    const isSelected = state.selectedWarmups.hasOwnProperty(act.name);
+    const duration = isSelected ? state.selectedWarmups[act.name] : 5;
+    return `
+      <div class="warmup-card ${isSelected ? 'selected' : ''}" data-name="${escapeAttr(act.name)}">
+        <div class="warmup-card-icon">${act.icon}</div>
+        <div class="warmup-card-text">${escapeHtml(act.name)}</div>
+        ${isSelected ? `
+          <div class="warmup-duration-picker" onclick="event.stopPropagation()">
+            <label>Duration:</label>
+            <input type="number" class="warmup-duration-input" data-activity="${escapeAttr(act.name)}" value="${duration}" min="1" max="180">
+            <span>min</span>
+          </div>
+        ` : ''}
+      </div>
+    `;
+  }).join('');
+
+  // Card click toggle
+  grid.querySelectorAll('.warmup-card').forEach(card => {
+    card.addEventListener('click', () => {
+      const name = card.dataset.name;
+      if (state.selectedWarmups.hasOwnProperty(name)) {
+        delete state.selectedWarmups[name];
+      } else {
+        state.selectedWarmups[name] = 5; // default 5 minutes
+      }
+      renderWarmupCards(activities, grid);
+    });
+  });
+
+  // Duration input listener
+  grid.querySelectorAll('.warmup-duration-input').forEach(input => {
+    input.addEventListener('change', (e) => {
+      const name = input.dataset.activity;
+      const val = parseInt(e.target.value) || 5;
+      state.selectedWarmups[name] = val;
+    });
+    input.addEventListener('input', (e) => {
+      const name = input.dataset.activity;
+      const val = parseInt(e.target.value) || 5;
+      state.selectedWarmups[name] = val;
+    });
+  });
+}
+
+function saveGeneralWarmup(details) {
+  if (!currentUid) return;
+
+  const workouts = getWorkoutsByDate(state.date);
+  const existing = workouts.find(w => w.bodyPart === 'warmup');
+
+  const workoutData = {
+    date: state.date,
+    bodyPart: 'warmup',
+    equipmentType: 'cardio',
+    category: null,
+    exercise: 'General Warm-up',
+    sets: [],
+    details: details,
+    createdAt: existing ? (existing.createdAt || new Date().toISOString()) : new Date().toISOString()
+  };
+
+  if (existing) {
+    workoutData.id = existing.id;
+    db.collection('users').doc(currentUid).collection('workouts').doc(existing.id)
+      .set(workoutData)
+      .catch(err => console.error('Update general warmup error:', err));
+
+    const idx = workoutsCache.findIndex(w => w.id === existing.id);
+    if (idx !== -1) workoutsCache[idx] = workoutData;
+  } else {
+    saveWorkout(workoutData);
+  }
+}
+
 /* ---------- Exercises View ---------- */
 function initExercises() {
   const searchInput = document.getElementById('search-exercises');
   searchInput.value = '';
 
-  // Build breadcrumb
   const crumbs = [{ label: formatDate(state.date) }];
   crumbs.push({ label: state.bodyPart === 'upper' ? 'Upper Body' : 'Lower Body' });
   crumbs.push({ label: state.equipmentType === 'machine' ? 'Machine' : 'Free Weight' });
-  if (state.bodyPart === 'upper' && state.equipmentType === 'machine' && state.category) {
-    crumbs.push({ label: capitalize(state.category) });
-  }
+  if (state.category) crumbs.push({ label: capitalize(state.category) });
   updateBreadcrumb('breadcrumb-exercises', crumbs);
 
-  // Title
   let title = 'Exercises';
-  if (state.bodyPart === 'upper' && state.equipmentType === 'machine' && state.category) {
-    title = capitalize(state.category) + ' Exercises';
-  }
+  if (state.category) title = capitalize(state.category) + ' Exercises';
   document.getElementById('exercises-title').textContent = title;
 
   renderExerciseList('');
-
-  // Show/hide add custom button (always visible for free weight, also for machine)
   document.getElementById('btn-add-custom').style.display = 'flex';
 }
 
@@ -237,7 +334,6 @@ function renderExerciseList(query) {
     `;
   }).join('');
 
-  // Attach click handlers
   list.querySelectorAll('.exercise-item').forEach(el => {
     el.addEventListener('click', () => {
       state.exercise = el.dataset.exercise;
@@ -250,17 +346,13 @@ function renderExerciseList(query) {
 function initLog() {
   document.getElementById('log-exercise-name').textContent = state.exercise;
 
-  // Build breadcrumb
   const crumbs = [{ label: formatDate(state.date) }];
   crumbs.push({ label: state.bodyPart === 'upper' ? 'Upper Body' : 'Lower Body' });
   crumbs.push({ label: state.equipmentType === 'machine' ? 'Machine' : 'Free Weight' });
-  if (state.bodyPart === 'upper' && state.equipmentType === 'machine' && state.category) {
-    crumbs.push({ label: capitalize(state.category) });
-  }
+  if (state.category) crumbs.push({ label: capitalize(state.category) });
   crumbs.push({ label: state.exercise });
   updateBreadcrumb('breadcrumb-log', crumbs);
 
-  // Initialize sets (start with 1 empty set, each with its own pain level)
   state.sets = [{ weight: '', reps: '', painLevel: 7 }];
   state.warmupSets = [];
   state.showWarmup = false;
@@ -268,73 +360,11 @@ function initLog() {
   renderSets();
 }
 
-/* ---------- Daily General Warm-up View ---------- */
-function initGeneralWarmup() {
-  updateBreadcrumb('breadcrumb-general-warmup', [{ label: formatDate(state.date) }]);
-
-  // Reset active classes
-  document.querySelectorAll('.warmup-card').forEach(card => card.classList.remove('selected'));
-  document.getElementById('input-custom-warmup').value = '';
-  state.generalWarmup = null;
-
-  // Search if we already logged a warmup for this day
-  const workouts = getWorkoutsByDate(state.date);
-  const existing = workouts.find(w => w.bodyPart === 'warmup');
-  if (existing) {
-    state.generalWarmup = existing.details;
-    let matched = false;
-    document.querySelectorAll('.warmup-card').forEach(card => {
-      if (card.dataset.warmup === existing.details) {
-        card.classList.add('selected');
-        matched = true;
-      }
-    });
-    if (!matched) {
-      document.getElementById('input-custom-warmup').value = existing.details;
-    }
-  }
-}
-
-function saveGeneralWarmup(details) {
-  if (!currentUid) return;
-
-  const workouts = getWorkoutsByDate(state.date);
-  const existing = workouts.find(w => w.bodyPart === 'warmup');
-
-  const workoutData = {
-    date: state.date,
-    bodyPart: 'warmup',
-    equipmentType: 'cardio',
-    category: null,
-    exercise: 'General Warm-up',
-    sets: [],
-    details: details,
-    createdAt: existing ? (existing.createdAt || new Date().toISOString()) : new Date().toISOString()
-  };
-
-  if (existing) {
-    workoutData.id = existing.id;
-    db.collection('users').doc(currentUid).collection('workouts').doc(existing.id)
-      .set(workoutData)
-      .catch(err => console.error('Update general warmup error:', err));
-    
-    const idx = workoutsCache.findIndex(w => w.id === existing.id);
-    if (idx !== -1) {
-      workoutsCache[idx] = workoutData;
-    }
-  } else {
-    saveWorkout(workoutData);
-  }
-}
-
 function renderWarmupSection() {
-  const container = document.getElementById('warmup-section');
   const toggle = document.getElementById('warmup-toggle');
   const content = document.getElementById('warmup-content');
-
   toggle.checked = state.showWarmup;
   content.style.display = state.showWarmup ? 'block' : 'none';
-
   if (!state.showWarmup) return;
   renderWarmupSets();
 }
@@ -366,7 +396,6 @@ function renderWarmupSets() {
     </div>
   `).join('');
 
-  // Attach listeners
   container.querySelectorAll('.warmup-weight').forEach((input, i) => {
     input.addEventListener('input', () => { state.warmupSets[i].weight = input.value; });
   });
@@ -387,9 +416,17 @@ function renderSets() {
     const painVal = set.painLevel || 7;
     const painInfo = getPainInfo(painVal);
     return `
-    <div class="set-card" data-index="${i}">
-      <div class="set-row">
-        <div class="set-number">${i + 1}</div>
+      <div class="set-card" data-index="${i}">
+        <div class="set-card-header">
+          <div class="set-number">${i + 1}</div>
+          ${state.sets.length > 1 ? `
+            <button class="btn-remove-set" data-remove="${i}" aria-label="Remove set">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M18 6L6 18M6 6l12 12"/>
+              </svg>
+            </button>
+          ` : ''}
+        </div>
         <div class="set-inputs">
           <div class="input-group">
             <label>Weight (kg)</label>
@@ -400,51 +437,33 @@ function renderSets() {
             <input type="number" class="set-reps" value="${set.reps}" placeholder="0" min="0" inputmode="numeric">
           </div>
         </div>
-        ${state.sets.length > 1 ? `
-          <button class="btn-remove-set" data-remove="${i}" aria-label="Remove set">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M18 6L6 18M6 6l12 12"/>
-            </svg>
-          </button>
-        ` : ''}
-      </div>
-      <div class="set-pain">
-        <div class="set-pain-header">
-          <span class="set-pain-label">Effort</span>
-          <span class="set-pain-value ${painInfo.level}">${painVal}</span>
+        <div class="set-pain-container">
+          <div class="set-pain-header">
+            <span class="set-pain-label">Effort / Pain Scale</span>
+            <span class="set-pain-value ${painInfo.level}">${painVal}</span>
+          </div>
+          <input type="range" class="pain-slider set-pain-slider" min="1" max="10" value="${painVal}" data-set="${i}">
+          <div class="set-pain-feedback ${painInfo.level}">${painInfo.label}</div>
         </div>
-        <input type="range" class="set-pain-slider" min="1" max="10" value="${painVal}" step="1" data-set="${i}">
-        <div class="set-pain-feedback ${painInfo.level}">${painInfo.label}</div>
       </div>
-    </div>
-  `;
+    `;
   }).join('');
 
-  // Init slider track colors
-  container.querySelectorAll('.set-pain-slider').forEach(slider => {
-    updateSetPainSliderTrack(slider, parseInt(slider.value));
-  });
-
-  // Attach listeners for set inputs
   container.querySelectorAll('.set-weight').forEach((input, i) => {
-    input.addEventListener('input', () => {
-      state.sets[i].weight = input.value;
-    });
+    input.addEventListener('input', () => { state.sets[i].weight = input.value; });
   });
   container.querySelectorAll('.set-reps').forEach((input, i) => {
-    input.addEventListener('input', () => {
-      state.sets[i].reps = input.value;
-    });
+    input.addEventListener('input', () => { state.sets[i].reps = input.value; });
   });
-  container.querySelectorAll('.btn-remove-set').forEach(btn => {
+  container.querySelectorAll('.btn-remove-set:not(.btn-remove-warmup)').forEach(btn => {
     btn.addEventListener('click', () => {
-      const idx = parseInt(btn.dataset.remove);
-      state.sets.splice(idx, 1);
+      state.sets.splice(parseInt(btn.dataset.remove), 1);
       renderSets();
     });
   });
-  // Pain slider per set
+
   container.querySelectorAll('.set-pain-slider').forEach(slider => {
+    updateSetPainSliderTrack(slider, parseInt(slider.value));
     slider.addEventListener('input', (e) => {
       const idx = parseInt(slider.dataset.set);
       const val = parseInt(e.target.value);
@@ -470,17 +489,14 @@ function getPainInfo(value) {
 function updateSetPainSliderTrack(slider, value) {
   const percent = ((value - 1) / 9) * 100;
   const colors = {
-    'level-low': '#10b981',
-    'level-moderate': '#f59e0b',
-    'level-optimal': '#f97316',
-    'level-high': '#ef4444'
+    'level-low': '#10b981', 'level-moderate': '#f59e0b',
+    'level-optimal': '#f97316', 'level-high': '#ef4444'
   };
   const info = getPainInfo(value);
   const color = colors[info.level];
   slider.style.background = `linear-gradient(to right, ${color} 0%, ${color} ${percent}%, rgba(255,255,255,0.04) ${percent}%, rgba(255,255,255,0.04) 100%)`;
   slider.style.setProperty('--thumb-color', color);
 }
-
 
 /* ---------- Day Detail View ---------- */
 function initDayDetail() {
@@ -504,16 +520,13 @@ function initDayDetail() {
     return;
   }
 
-  // Find general warm-up workout
   const generalWarmupWorkout = workouts.find(w => w.bodyPart === 'warmup');
-  // Filter out general warm-up from strength groups
   const strengthWorkouts = workouts.filter(w => w.bodyPart !== 'warmup');
 
-  // Group workouts by bodyPart + equipmentType
   const groups = {};
   strengthWorkouts.forEach(w => {
-    const key = `${w.bodyPart}-${w.equipmentType}`;
-    if (!groups[key]) groups[key] = { bodyPart: w.bodyPart, equipmentType: w.equipmentType, items: [] };
+    const key = `${w.bodyPart}-${w.equipmentType}-${w.category || 'all'}`;
+    if (!groups[key]) groups[key] = { bodyPart: w.bodyPart, equipmentType: w.equipmentType, category: w.category, items: [] };
     groups[key].items.push(w);
   });
 
@@ -548,17 +561,17 @@ function initDayDetail() {
     const group = groups[key];
     const bodyLabel = group.bodyPart === 'upper' ? 'Upper Body' : 'Lower Body';
     const equipLabel = group.equipmentType === 'machine' ? 'Machine' : 'Free Weight';
+    const catLabel = group.category ? ` (${capitalize(group.category)})` : '';
 
     html += `
       <div class="workout-group">
         <div class="workout-group-header">
           <span class="dot"></span>
-          ${bodyLabel} — ${equipLabel}
+          ${bodyLabel} — ${equipLabel}${catLabel}
         </div>
     `;
 
     group.items.forEach(w => {
-      // Support both legacy (exercise-level painLevel) and new (per-set painLevel)
       const hasPerSetPain = w.sets && w.sets.length > 0 && w.sets[0].painLevel !== undefined;
 
       html += `
@@ -620,58 +633,46 @@ function initDayDetail() {
 
   container.innerHTML = html;
 
-  // Delete handlers
   container.querySelectorAll('.workout-entry-delete').forEach(btn => {
     btn.addEventListener('click', () => {
       const id = btn.dataset.id;
-      if (confirm('Delete this exercise log?')) {
-        deleteWorkout(id);
-        showToast('Exercise deleted', 'toast-success');
-        initDayDetail();
-        // Refresh calendar if we navigated from home
-        if (calendarInstance) calendarInstance.refresh();
-      }
+      deleteWorkout(id);
+      initDayDetail();
+      showToast('Deleted', 'toast-neutral');
     });
   });
 }
 
 /* ---------- Event Listeners ---------- */
-let listenersAttached = false;
-
 function attachListeners() {
-  // Prevent duplicate listeners on re-auth
   if (listenersAttached) return;
   listenersAttached = true;
 
-  // New Workout FAB
   document.getElementById('btn-new-workout').addEventListener('click', () => {
     state.date = getTodayStr();
+    state.selectedWarmups = {};
     showView('date');
   });
 
-  // Back buttons (data-back attribute)
   document.querySelectorAll('.btn-back[data-back]').forEach(btn => {
     btn.addEventListener('click', () => {
       showView(btn.dataset.back);
     });
   });
 
-  // Back button for exercises (dynamic target)
   document.getElementById('btn-back-exercises').addEventListener('click', () => {
-    if (state.bodyPart === 'upper' && state.equipmentType === 'machine') {
+    if (state.bodyPart === 'upper') {
       showView('category');
     } else {
-      showView('equipment');
+      showView('lower-category');
     }
   });
 
-  // Date: Today button
   document.getElementById('btn-today').addEventListener('click', () => {
     document.getElementById('input-date').value = getTodayStr();
     state.date = getTodayStr();
   });
 
-  // Date: Continue
   document.getElementById('btn-date-continue').addEventListener('click', () => {
     const val = document.getElementById('input-date').value;
     if (!val) {
@@ -679,47 +680,40 @@ function attachListeners() {
       return;
     }
     state.date = val;
+    state.selectedWarmups = {};
     showView('general-warmup');
   });
 
-  // General Warm-up: Select card
-  document.querySelectorAll('.warmup-card').forEach(card => {
-    card.addEventListener('click', () => {
-      const selected = card.classList.contains('selected');
-      document.querySelectorAll('.warmup-card').forEach(c => c.classList.remove('selected'));
-      if (!selected) {
-        card.classList.add('selected');
-        state.generalWarmup = card.dataset.warmup;
-        document.getElementById('input-custom-warmup').value = ''; // clear custom
-      } else {
-        state.generalWarmup = null;
-      }
-    });
-  });
-
-  // General Warm-up: Custom text input
-  document.getElementById('input-custom-warmup').addEventListener('input', (e) => {
-    if (e.target.value.trim() !== '') {
-      document.querySelectorAll('.warmup-card').forEach(c => c.classList.remove('selected'));
-      state.generalWarmup = e.target.value.trim();
+  // Add Custom Warmup Activity
+  document.getElementById('btn-add-custom-warmup').addEventListener('click', () => {
+    const input = document.getElementById('input-custom-warmup');
+    const name = input.value.trim();
+    if (!name) {
+      showToast('Please enter an activity name', 'toast-error');
+      return;
+    }
+    const added = addCustomWarmup(name);
+    if (added) {
+      showToast('Warm-up activity added! 🔥', 'toast-success');
+      input.value = '';
+      state.selectedWarmups[name] = 5; // select it by default
+      initGeneralWarmup();
     } else {
-      state.generalWarmup = null;
+      showToast('Activity already exists', 'toast-error');
     }
   });
 
   // General Warm-up: Save & Continue
   document.getElementById('btn-warmup-continue').addEventListener('click', () => {
-    const customVal = document.getElementById('input-custom-warmup').value.trim();
-    const finalWarmup = customVal || state.generalWarmup;
-
-    if (finalWarmup) {
-      saveGeneralWarmup(finalWarmup);
+    const keys = Object.keys(state.selectedWarmups);
+    if (keys.length > 0) {
+      const formatted = keys.map(k => `${k} (${state.selectedWarmups[k]} min)`).join(', ');
+      saveGeneralWarmup(formatted);
       showToast('Daily warm-up saved! 🔥', 'toast-success');
     }
     showView('body-part');
   });
 
-  // General Warm-up: Skip
   document.getElementById('btn-warmup-skip').addEventListener('click', () => {
     showView('body-part');
   });
@@ -736,17 +730,15 @@ function attachListeners() {
   document.querySelectorAll('[data-equip]').forEach(card => {
     card.addEventListener('click', () => {
       state.equipmentType = card.dataset.equip;
-      // If upper body + machine → show category. Otherwise → show exercises directly
-      if (state.bodyPart === 'upper' && state.equipmentType === 'machine') {
+      if (state.bodyPart === 'upper') {
         showView('category');
       } else {
-        state.category = null;
-        showView('exercises');
+        showView('lower-category');
       }
     });
   });
 
-  // Category selection
+  // Upper Category selection (Push / Pull / Core)
   document.querySelectorAll('[data-category]').forEach(card => {
     card.addEventListener('click', () => {
       state.category = card.dataset.category;
@@ -754,22 +746,26 @@ function attachListeners() {
     });
   });
 
-  // Search exercises
+  // Lower Category selection (Quads / Hamstrings / Glutes / Adductors / Calves)
+  document.querySelectorAll('[data-lower-category]').forEach(card => {
+    card.addEventListener('click', () => {
+      state.category = card.dataset.lowerCategory;
+      showView('exercises');
+    });
+  });
+
   document.getElementById('search-exercises').addEventListener('input', (e) => {
     renderExerciseList(e.target.value);
   });
 
-  // Add custom exercise
   document.getElementById('btn-add-custom').addEventListener('click', () => {
     openModal();
   });
 
-  // Modal: Cancel
   document.getElementById('btn-modal-cancel').addEventListener('click', () => {
     closeModal();
   });
 
-  // Modal: Save
   document.getElementById('btn-modal-save').addEventListener('click', () => {
     const input = document.getElementById('custom-exercise-input');
     const name = input.value.trim();
@@ -788,25 +784,21 @@ function attachListeners() {
     }
   });
 
-  // Modal: Close on overlay click
   document.getElementById('modal-overlay').addEventListener('click', (e) => {
     if (e.target === e.currentTarget) closeModal();
   });
 
-  // Modal: Enter key to save
   document.getElementById('custom-exercise-input').addEventListener('keydown', (e) => {
     if (e.key === 'Enter') {
       document.getElementById('btn-modal-save').click();
     }
   });
 
-  // Add Set
   document.getElementById('btn-add-set').addEventListener('click', () => {
     state.sets.push({ weight: '', reps: '', painLevel: 7 });
     renderSets();
   });
 
-  // Warm-up toggle
   document.getElementById('warmup-toggle').addEventListener('change', (e) => {
     state.showWarmup = e.target.checked;
     const content = document.getElementById('warmup-content');
@@ -817,17 +809,12 @@ function attachListeners() {
     renderWarmupSets();
   });
 
-  // Add Warm-up Set
   document.getElementById('btn-add-warmup-set').addEventListener('click', () => {
     state.warmupSets.push({ weight: '', reps: '' });
     renderWarmupSets();
   });
 
-  // Pain slider is now handled per-set in renderSets()
-
-  // Save Workout
   document.getElementById('btn-save-workout').addEventListener('click', () => {
-    // Validate
     const validSets = state.sets.filter(s => s.weight !== '' && s.reps !== '');
     if (validSets.length === 0) {
       showToast('Please enter at least one set', 'toast-error');
@@ -855,15 +842,13 @@ function attachListeners() {
 
     saveWorkout(workout);
     showToast('Workout saved! 💪', 'toast-success');
-
-    // Go back to exercise list so user can log more
     showView('exercises');
   });
 
-  // Add More (Day Detail)
+  // Day Detail: Add More Exercises -> Start from Daily Warmup
   document.getElementById('btn-add-more').addEventListener('click', () => {
-    // Date is already set from the day detail view
-    showView('body-part');
+    state.selectedWarmups = {};
+    showView('general-warmup');
   });
 }
 
@@ -896,8 +881,6 @@ function showToast(message, type = '') {
   const toast = document.getElementById('toast');
   toast.textContent = message;
   toast.className = 'toast ' + type;
-
-  // Force reflow to restart animation
   toast.offsetHeight;
   toast.classList.add('visible');
 
