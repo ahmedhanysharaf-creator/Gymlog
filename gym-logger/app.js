@@ -405,6 +405,11 @@ function renderAttachmentPills() {
 function initLog() {
   document.getElementById('log-exercise-name').textContent = state.exercise;
 
+  const dateInput = document.getElementById('log-date-input');
+  if (dateInput) {
+    dateInput.value = state.date || getTodayStr();
+  }
+
   const isEditing = Boolean(state.editingWorkoutId);
   const logTitleEl = document.querySelector('#view-log h2');
   if (logTitleEl) {
@@ -675,18 +680,26 @@ function initDayDetail() {
 
   if (generalWarmupWorkout) {
     html += `
-      <div class="general-warmup-detail-card">
+      <div class="general-warmup-detail-card" data-id="${generalWarmupWorkout.id}">
         <div class="general-warmup-detail-header">
           <div class="title-with-icon">
             <span class="warmup-fire">🔥</span>
             <span class="warmup-title-text">Daily Warm-up</span>
           </div>
-          <button class="workout-entry-delete" data-id="${generalWarmupWorkout.id}" aria-label="Delete warm-up">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <polyline points="3 6 5 6 21 6"/>
-              <path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/>
-            </svg>
-          </button>
+          <div style="display: flex; gap: 8px;">
+            <button class="workout-entry-edit-warmup" data-id="${generalWarmupWorkout.id}" aria-label="Edit warm-up" title="Edit warm-up">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/>
+                <path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/>
+              </svg>
+            </button>
+            <button class="workout-entry-delete-warmup" data-id="${generalWarmupWorkout.id}" aria-label="Delete warm-up" title="Delete warm-up">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="3 6 5 6 21 6"/>
+                <path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/>
+              </svg>
+            </button>
+          </div>
         </div>
         <div class="general-warmup-detail-content">
           ${escapeHtml(generalWarmupWorkout.details)}
@@ -800,6 +813,28 @@ function initDayDetail() {
   }
 
   container.innerHTML = html;
+
+  const btnDeleteWarmup = container.querySelector('.workout-entry-delete-warmup');
+  if (btnDeleteWarmup) {
+    btnDeleteWarmup.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const id = btnDeleteWarmup.dataset.id;
+      deleteWorkout(id);
+      state.selectedWarmups = {};
+      showToast('Daily warm-up deleted', 'toast-success');
+      initDayDetail();
+    });
+  }
+
+  const btnEditWarmup = container.querySelector('.workout-entry-edit-warmup');
+  if (btnEditWarmup) {
+    btnEditWarmup.addEventListener('click', (e) => {
+      e.stopPropagation();
+      state.selectedWarmups = {};
+      state.fromDayDetail = true;
+      showView('general-warmup');
+    });
+  }
 
   container.querySelectorAll('.workout-entry').forEach(entryEl => {
     const id = entryEl.dataset.id;
@@ -1103,8 +1138,29 @@ function attachListeners() {
     renderWarmupSets();
   });
 
+  const dateInput = document.getElementById('log-date-input');
+  if (dateInput) {
+    dateInput.addEventListener('change', (e) => {
+      if (e.target.value) {
+        state.date = e.target.value;
+        const crumbs = [{ label: formatDate(state.date) }];
+        if (state.bodyPart) crumbs.push({ label: state.bodyPart === 'upper' ? 'Upper Body' : 'Lower Body' });
+        if (state.equipmentType) crumbs.push({ label: state.equipmentType === 'machine' ? 'Machine' : 'Free Weight' });
+        if (state.category) crumbs.push({ label: capitalize(state.category) });
+        crumbs.push({ label: state.exercise });
+        if (state.editingWorkoutId) crumbs.push({ label: 'Editing' });
+        updateBreadcrumb('breadcrumb-log', crumbs);
+      }
+    });
+  }
+
   document.getElementById('btn-save-workout').addEventListener('click', () => {
     const isSprint = state.category === 'sprinting';
+
+    const dateVal = document.getElementById('log-date-input')?.value;
+    if (dateVal) {
+      state.date = dateVal;
+    }
 
     let validSets = [];
     if (isSprint) {
@@ -1161,7 +1217,7 @@ function attachListeners() {
     } else {
       saveWorkout(workout);
       showToast(isSprint ? 'Sprint workout saved! ⚡' : 'Workout saved! 💪', 'toast-success');
-      showView('exercises');
+      showView('day-detail');
     }
   });
 
