@@ -1349,6 +1349,82 @@ input[type="date"]::-webkit-calendar-picker-indicator {
   border: 1px solid rgba(239, 68, 68, 0.2);
 }
 
+/* ---------- Cable Attachment Selector ---------- */
+.attachment-section {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--r-lg);
+  padding: 16px;
+  margin-bottom: 16px;
+  transition: all var(--duration) var(--ease);
+}
+
+.attachment-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.attachment-title-text {
+  font-size: 0.78rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-secondary);
+}
+
+.attachment-pills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.attachment-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 14px;
+  background: var(--bg-input);
+  border: 1px solid var(--border);
+  border-radius: var(--r-full);
+  font-size: 0.83rem;
+  font-weight: 500;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: all var(--duration) var(--ease);
+  user-select: none;
+}
+
+.attachment-pill:hover {
+  border-color: var(--accent);
+  color: var(--text);
+  background: rgba(0, 212, 255, 0.08);
+}
+
+.attachment-pill.active {
+  background: var(--accent-glow);
+  border-color: var(--accent);
+  color: var(--accent);
+  font-weight: 700;
+  box-shadow: 0 0 12px var(--accent-glow);
+}
+
+.attachment-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px;
+  background: rgba(0, 212, 255, 0.12);
+  border: 1px solid rgba(0, 212, 255, 0.3);
+  border-radius: var(--r-full);
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--accent);
+  margin-left: 8px;
+  vertical-align: middle;
+}
+
 .set-number {
   width: 32px;
   height: 32px;

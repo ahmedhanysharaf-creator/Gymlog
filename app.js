@@ -7,8 +7,9 @@ const state = {
   date: null,
   bodyPart: null,       // 'upper' | 'lower'
   equipmentType: null,  // 'machine' | 'freeweight'
-  category: null,       // 'push'|'pull'|'core' OR 'quads'|'hamstrings'|'glutes'|'adductors'|'calves'
+  category: null,       // 'push'|'pull'|'core' OR 'quads'|'hamstrings'|'glutes'|'adductors'|'calves'|'sprinting'
   exercise: null,
+  attachment: null,     // Cable attachment e.g. 'Rope', 'Straight Bar', etc.
   sets: [],             // [{ weight: '', reps: '', painLevel: 7 }, ...]
   warmupSets: [],       // [{ weight: '', reps: '' }, ...]
   showWarmup: false,
@@ -342,6 +343,57 @@ function renderExerciseList(query) {
   });
 }
 
+/* ---------- Cable Attachments ---------- */
+const CABLE_ATTACHMENTS = [
+  { id: 'Rope', icon: '🪢' },
+  { id: 'Straight Bar', icon: '➖' },
+  { id: 'V-Bar / EZ-Bar', icon: '🔻' },
+  { id: 'Single D-Handle', icon: '🖐️' },
+  { id: 'Dual D-Handles', icon: '👐' },
+  { id: 'Ankle Strap', icon: '🦵' },
+  { id: 'Lat Pulldown Bar', icon: '🏋️' }
+];
+
+function isCableExercise(name) {
+  if (!name) return false;
+  const n = name.toLowerCase();
+  return n.includes('cable') || n.includes('pushdown') || n.includes('pulldown') || n.includes('face pull') || n.includes('woodchop') || n.includes('pallof') || n.includes('kickback') || n.includes('rope');
+}
+
+function renderAttachmentSection() {
+  const section = document.getElementById('attachment-section');
+  if (!section) return;
+
+  const isCable = isCableExercise(state.exercise) || state.equipmentType === 'machine';
+  section.style.display = isCable ? 'block' : 'none';
+  if (isCable) {
+    renderAttachmentPills();
+  }
+}
+
+function renderAttachmentPills() {
+  const container = document.getElementById('attachment-pills');
+  if (!container) return;
+
+  container.innerHTML = CABLE_ATTACHMENTS.map(att => {
+    const isSelected = state.attachment === att.id;
+    return `
+      <button type="button" class="attachment-pill ${isSelected ? 'active' : ''}" data-attachment="${escapeAttr(att.id)}">
+        <span>${att.icon}</span>
+        <span>${escapeHtml(att.id)}</span>
+      </button>
+    `;
+  }).join('');
+
+  container.querySelectorAll('.attachment-pill').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const att = btn.dataset.attachment;
+      state.attachment = (state.attachment === att) ? null : att;
+      renderAttachmentPills();
+    });
+  });
+}
+
 /* ---------- Log View ---------- */
 function initLog() {
   document.getElementById('log-exercise-name').textContent = state.exercise;
@@ -352,6 +404,9 @@ function initLog() {
   if (state.category) crumbs.push({ label: capitalize(state.category) });
   crumbs.push({ label: state.exercise });
   updateBreadcrumb('breadcrumb-log', crumbs);
+
+  state.attachment = null;
+  renderAttachmentSection();
 
   if (state.category === 'sprinting') {
     state.sets = [{ distance: '', time: '', weight: '', reps: '1', painLevel: 7 }];
@@ -634,7 +689,10 @@ function initDayDetail() {
       html += `
         <div class="workout-entry">
           <div class="workout-entry-header">
-            <span class="workout-entry-name">${escapeHtml(w.exercise)}</span>
+            <div style="display: flex; align-items: center; gap: 4px; flex-wrap: wrap;">
+              <span class="workout-entry-name">${escapeHtml(w.exercise)}</span>
+              ${w.attachment ? `<span class="attachment-badge">🔗 ${escapeHtml(w.attachment)}</span>` : ''}
+            </div>
             <button class="workout-entry-delete" data-id="${w.id}" aria-label="Delete workout">
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                 <polyline points="3 6 5 6 21 6"/>
@@ -937,6 +995,7 @@ function attachListeners() {
       equipmentType: state.equipmentType,
       category: state.category,
       exercise: state.exercise,
+      attachment: state.attachment || null,
       warmupSets: validWarmups.map(s => {
         const item = {
           weight: parseFloat(s.weight) || 0,
