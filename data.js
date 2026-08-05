@@ -273,6 +273,19 @@ function getWorkoutDates() {
   return [...new Set(workoutsCache.map(w => w.date))];
 }
 
+function updateWorkout(id, updatedData) {
+  if (!currentUid || !id) return;
+  updatedData.updatedAt = new Date().toISOString();
+  db.collection('users').doc(currentUid).collection('workouts')
+    .doc(id).set(updatedData, { merge: true })
+    .catch(err => console.error('Update workout error:', err));
+
+  const idx = workoutsCache.findIndex(w => w.id === id);
+  if (idx !== -1) {
+    workoutsCache[idx] = { ...workoutsCache[idx], ...updatedData };
+  }
+}
+
 function deleteWorkout(id) {
   if (!currentUid) return;
   db.collection('users').doc(currentUid).collection('workouts')

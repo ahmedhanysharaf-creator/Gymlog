@@ -1703,11 +1703,20 @@ input[type="range"]::-moz-range-thumb {
   border-radius: var(--r-md);
   padding: 16px;
   margin-bottom: 10px;
-  transition: all var(--duration) var(--ease);
+  transition: transform 0.15s var(--ease), border-color var(--duration) var(--ease), background var(--duration) var(--ease);
+  cursor: pointer;
+  user-select: none;
+  -webkit-user-select: none;
+  touch-action: manipulation;
 }
 
 .workout-entry:hover {
   border-color: var(--border-hover);
+  background: var(--bg-card-hover);
+}
+
+.workout-entry:active {
+  transform: scale(0.985);
 }
 
 .workout-entry-header {
@@ -1720,6 +1729,22 @@ input[type="range"]::-moz-range-thumb {
 .workout-entry-name {
   font-weight: 600;
   font-size: 0.95rem;
+}
+
+.workout-entry-actions-btn {
+  width: 32px;
+  height: 32px;
+  border-radius: var(--r-sm);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-secondary);
+  transition: all var(--duration) var(--ease);
+}
+
+.workout-entry-actions-btn:hover {
+  color: var(--accent);
+  background: var(--accent-glow);
 }
 
 .workout-entry-delete {
@@ -1736,6 +1761,78 @@ input[type="range"]::-moz-range-thumb {
 .workout-entry-delete:hover {
   color: var(--danger);
   background: rgba(239, 68, 68, 0.1);
+}
+
+/* ---------- Action Modal (Edit / Delete) ---------- */
+.action-modal {
+  text-align: center;
+  padding: 24px;
+}
+
+.action-modal-header h3 {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: var(--text);
+  margin-bottom: 4px;
+}
+
+.action-modal-sub {
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+  margin-bottom: 20px;
+}
+
+.action-modal-buttons {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.btn-action {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  width: 100%;
+  padding: 14px;
+  border-radius: var(--r-md);
+  font-size: 0.95rem;
+  font-weight: 600;
+  transition: all var(--duration) var(--ease);
+  cursor: pointer;
+}
+
+.btn-action-edit {
+  background: rgba(0, 212, 255, 0.1);
+  border: 1px solid rgba(0, 212, 255, 0.3);
+  color: var(--accent);
+}
+
+.btn-action-edit:hover {
+  background: rgba(0, 212, 255, 0.2);
+  box-shadow: 0 0 16px rgba(0, 212, 255, 0.2);
+}
+
+.btn-action-delete {
+  background: rgba(239, 68, 68, 0.1);
+  border: 1px solid rgba(239, 68, 68, 0.3);
+  color: var(--danger);
+}
+
+.btn-action-delete:hover {
+  background: rgba(239, 68, 68, 0.2);
+  box-shadow: 0 0 16px rgba(239, 68, 68, 0.2);
+}
+
+.btn-action-cancel {
+  background: var(--bg-input);
+  border: 1px solid var(--border);
+  color: var(--text-secondary);
+}
+
+.btn-action-cancel:hover {
+  background: var(--bg-card-hover);
+  color: var(--text);
 }
 
 .workout-entry-sets {

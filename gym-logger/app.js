@@ -10,6 +10,7 @@ const state = {
   category: null,       // 'push'|'pull'|'core' OR 'quads'|'hamstrings'|'glutes'|'adductors'|'calves'|'sprinting'
   exercise: null,
   attachment: null,     // Cable attachment e.g. 'Rope', 'Straight Bar', etc.
+  editingWorkoutId: null, // Workout ID when editing an existing workout
   sets: [],             // [{ weight: '', reps: '', painLevel: 7 }, ...]
   warmupSets: [],       // [{ weight: '', reps: '' }, ...]
   showWarmup: false,
@@ -398,23 +399,42 @@ function renderAttachmentPills() {
 function initLog() {
   document.getElementById('log-exercise-name').textContent = state.exercise;
 
+  const isEditing = Boolean(state.editingWorkoutId);
+  const logTitleEl = document.querySelector('#view-log h2');
+  if (logTitleEl) {
+    logTitleEl.textContent = isEditing ? 'Edit Exercise' : 'Log Exercise';
+  }
+
+  const saveBtnEl = document.getElementById('btn-save-workout');
+  if (saveBtnEl) {
+    saveBtnEl.innerHTML = isEditing
+      ? `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg> Update Workout`
+      : `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg> Save Workout`;
+  }
+
   const crumbs = [{ label: formatDate(state.date) }];
-  crumbs.push({ label: state.bodyPart === 'upper' ? 'Upper Body' : 'Lower Body' });
-  crumbs.push({ label: state.equipmentType === 'machine' ? 'Machine' : 'Free Weight' });
+  if (state.bodyPart) crumbs.push({ label: state.bodyPart === 'upper' ? 'Upper Body' : 'Lower Body' });
+  if (state.equipmentType) crumbs.push({ label: state.equipmentType === 'machine' ? 'Machine' : 'Free Weight' });
   if (state.category) crumbs.push({ label: capitalize(state.category) });
   crumbs.push({ label: state.exercise });
+  if (isEditing) crumbs.push({ label: 'Editing' });
   updateBreadcrumb('breadcrumb-log', crumbs);
 
-  state.attachment = null;
   renderAttachmentSection();
 
-  if (state.category === 'sprinting') {
-    state.sets = [{ distance: '', time: '', weight: '', reps: '1', painLevel: 7 }];
+  if (!isEditing) {
+    state.attachment = null;
+    if (state.category === 'sprinting') {
+      state.sets = [{ distance: '', time: '', weight: '', reps: '1', painLevel: 7 }];
+    } else {
+      state.sets = [{ weight: '', reps: '', painLevel: 7 }];
+    }
+    state.warmupSets = [];
+    state.showWarmup = false;
   } else {
-    state.sets = [{ weight: '', reps: '', painLevel: 7 }];
+    state.showWarmup = state.warmupSets && state.warmupSets.length > 0;
   }
-  state.warmupSets = [];
-  state.showWarmup = false;
+
   renderWarmupSection();
   renderSets();
 }
@@ -687,16 +707,17 @@ function initDayDetail() {
       const hasPerSetPain = w.sets && w.sets.length > 0 && w.sets[0].painLevel !== undefined;
 
       html += `
-        <div class="workout-entry">
+        <div class="workout-entry" data-id="${w.id}">
           <div class="workout-entry-header">
-            <div style="display: flex; align-items: center; gap: 4px; flex-wrap: wrap;">
+            <div style="display: flex; align-items: center; gap: 6px; flex-wrap: wrap;">
               <span class="workout-entry-name">${escapeHtml(w.exercise)}</span>
               ${w.attachment ? `<span class="attachment-badge">🔗 ${escapeHtml(w.attachment)}</span>` : ''}
             </div>
-            <button class="workout-entry-delete" data-id="${w.id}" aria-label="Delete workout">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <polyline points="3 6 5 6 21 6"/>
-                <path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/>
+            <button class="workout-entry-actions-btn" data-id="${w.id}" aria-label="Workout options">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="12" cy="12" r="1.5"/>
+                <circle cx="12" cy="5" r="1.5"/>
+                <circle cx="12" cy="19" r="1.5"/>
               </svg>
             </button>
           </div>
@@ -774,20 +795,126 @@ function initDayDetail() {
 
   container.innerHTML = html;
 
-  container.querySelectorAll('.workout-entry-delete').forEach(btn => {
-    btn.addEventListener('click', () => {
-      const id = btn.dataset.id;
-      deleteWorkout(id);
-      initDayDetail();
-      showToast('Deleted', 'toast-neutral');
+  container.querySelectorAll('.workout-entry').forEach(entryEl => {
+    const id = entryEl.dataset.id;
+    const workout = workouts.find(w => w.id === id);
+    if (!workout) return;
+
+    addLongPressListener(entryEl, () => {
+      openWorkoutActionsModal(workout);
     });
+
+    const optionsBtn = entryEl.querySelector('.workout-entry-actions-btn');
+    if (optionsBtn) {
+      optionsBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        openWorkoutActionsModal(workout);
+      });
+    }
   });
+}
+
+/* ---------- Long Press Utility ---------- */
+function addLongPressListener(element, callback) {
+  let timer = null;
+  let isTouch = false;
+
+  function start(e) {
+    timer = setTimeout(() => {
+      if (navigator.vibrate) navigator.vibrate(40);
+      callback(e);
+    }, 500);
+  }
+
+  function cancel() {
+    if (timer) {
+      clearTimeout(timer);
+      timer = null;
+    }
+  }
+
+  element.addEventListener('touchstart', (e) => {
+    isTouch = true;
+    start(e);
+  }, { passive: true });
+
+  element.addEventListener('touchend', cancel);
+  element.addEventListener('touchmove', cancel);
+
+  element.addEventListener('mousedown', (e) => {
+    if (isTouch) return;
+    start(e);
+  });
+  element.addEventListener('mouseup', cancel);
+  element.addEventListener('mouseleave', cancel);
+}
+
+/* ---------- Workout Action Modal ---------- */
+let activeModalWorkout = null;
+
+function openWorkoutActionsModal(workout) {
+  activeModalWorkout = workout;
+  const modal = document.getElementById('modal-workout-actions');
+  const title = document.getElementById('action-modal-title');
+  const sub = document.getElementById('action-modal-subtitle');
+  if (!modal) return;
+
+  if (title) title.textContent = workout.exercise;
+  if (sub) {
+    const setMsg = `${(workout.sets || []).length} set${(workout.sets || []).length !== 1 ? 's' : ''}`;
+    const attMsg = workout.attachment ? ` • ${workout.attachment}` : '';
+    sub.textContent = `${setMsg}${attMsg}`;
+  }
+
+  modal.classList.remove('hidden');
+}
+
+function closeWorkoutActionsModal() {
+  const modal = document.getElementById('modal-workout-actions');
+  if (modal) modal.classList.add('hidden');
+  activeModalWorkout = null;
 }
 
 /* ---------- Event Listeners ---------- */
 function attachListeners() {
   if (listenersAttached) return;
   listenersAttached = true;
+
+  document.getElementById('btn-action-edit').addEventListener('click', () => {
+    if (!activeModalWorkout) return;
+    const w = activeModalWorkout;
+    closeWorkoutActionsModal();
+
+    state.editingWorkoutId = w.id;
+    state.date = w.date;
+    state.bodyPart = w.bodyPart;
+    state.equipmentType = w.equipmentType;
+    state.category = w.category;
+    state.exercise = w.exercise;
+    state.attachment = w.attachment || null;
+    state.sets = JSON.parse(JSON.stringify(w.sets || []));
+    state.warmupSets = JSON.parse(JSON.stringify(w.warmupSets || []));
+    state.showWarmup = state.warmupSets && state.warmupSets.length > 0;
+
+    showView('log');
+  });
+
+  document.getElementById('btn-action-delete').addEventListener('click', () => {
+    if (!activeModalWorkout) return;
+    const id = activeModalWorkout.id;
+    closeWorkoutActionsModal();
+    deleteWorkout(id);
+    showToast('Workout deleted', 'toast-success');
+    initDayDetail();
+  });
+
+  document.getElementById('btn-action-cancel').addEventListener('click', () => {
+    closeWorkoutActionsModal();
+  });
+
+  document.getElementById('modal-workout-actions').addEventListener('click', (e) => {
+    if (e.target === e.currentTarget) closeWorkoutActionsModal();
+  });
 
   document.getElementById('btn-new-workout').addEventListener('click', () => {
     state.date = getTodayStr();
@@ -797,6 +924,7 @@ function attachListeners() {
 
   document.querySelectorAll('.btn-back[data-back]').forEach(btn => {
     btn.addEventListener('click', () => {
+      state.editingWorkoutId = null;
       showView(btn.dataset.back);
     });
   });
@@ -1017,9 +1145,16 @@ function attachListeners() {
       })
     };
 
-    saveWorkout(workout);
-    showToast(isSprint ? 'Sprint workout saved! ⚡' : 'Workout saved! 💪', 'toast-success');
-    showView('exercises');
+    if (state.editingWorkoutId) {
+      updateWorkout(state.editingWorkoutId, workout);
+      showToast('Workout updated! ✏️', 'toast-success');
+      state.editingWorkoutId = null;
+      showView('day-detail');
+    } else {
+      saveWorkout(workout);
+      showToast(isSprint ? 'Sprint workout saved! ⚡' : 'Workout saved! 💪', 'toast-success');
+      showView('exercises');
+    }
   });
 
   // Day Detail: Add More Exercises -> Start from Daily Warmup
