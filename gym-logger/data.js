@@ -94,6 +94,13 @@ const DEFAULT_EXERCISES = {
       'Calf Raise Machine',
       'Seated Calf Raise Machine',
       'Donkey Calf Raise'
+    ],
+    sprinting: [
+      'Treadmill Sprints',
+      'Curved Treadmill Max Sprints',
+      'Assault / Fan Bike Sprints',
+      'Sled Push Sprints',
+      'Sled Pull Sprints'
     ]
   },
   lowerFreeWeight: {
@@ -131,6 +138,17 @@ const DEFAULT_EXERCISES = {
       'Standing Calf Raise (Dumbbell)',
       'Seated Calf Raise',
       'Single-Leg Calf Raise'
+    ],
+    sprinting: [
+      '100m Flat Sprints',
+      '200m Flat Sprints',
+      '400m Sprints',
+      'Hill Sprints',
+      'Flying 30m Speed Sprints',
+      'Shuttle Runs / Suicides',
+      'Interval Sprints (HIIT)',
+      'Banded / Resistance Sprints',
+      'Single Leg Bounds & Sprint Drills'
     ]
   }
 };
@@ -152,9 +170,9 @@ let customExercisesCache = {
   upperMachinePush: [], upperMachinePull: [], upperMachineCore: [],
   upperFreeWeightPush: [], upperFreeWeightPull: [], upperFreeWeightCore: [],
   lowerMachineQuads: [], lowerMachineHamstrings: [], lowerMachineGlutes: [],
-  lowerMachineAdductors: [], lowerMachineCalves: [],
+  lowerMachineAdductors: [], lowerMachineCalves: [], lowerMachineSprinting: [],
   lowerFreeWeightQuads: [], lowerFreeWeightHamstrings: [], lowerFreeWeightGlutes: [],
-  lowerFreeWeightAdductors: [], lowerFreeWeightCalves: []
+  lowerFreeWeightAdductors: [], lowerFreeWeightCalves: [], lowerFreeWeightSprinting: []
 };
 let customWarmupsCache = [];
 
@@ -228,9 +246,9 @@ function teardownDataLayer() {
     upperMachinePush: [], upperMachinePull: [], upperMachineCore: [],
     upperFreeWeightPush: [], upperFreeWeightPull: [], upperFreeWeightCore: [],
     lowerMachineQuads: [], lowerMachineHamstrings: [], lowerMachineGlutes: [],
-    lowerMachineAdductors: [], lowerMachineCalves: [],
+    lowerMachineAdductors: [], lowerMachineCalves: [], lowerMachineSprinting: [],
     lowerFreeWeightQuads: [], lowerFreeWeightHamstrings: [], lowerFreeWeightGlutes: [],
-    lowerFreeWeightAdductors: [], lowerFreeWeightCalves: []
+    lowerFreeWeightAdductors: [], lowerFreeWeightCalves: [], lowerFreeWeightSprinting: []
   };
 }
 

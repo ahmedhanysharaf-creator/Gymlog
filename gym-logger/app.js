@@ -353,7 +353,11 @@ function initLog() {
   crumbs.push({ label: state.exercise });
   updateBreadcrumb('breadcrumb-log', crumbs);
 
-  state.sets = [{ weight: '', reps: '', painLevel: 7 }];
+  if (state.category === 'sprinting') {
+    state.sets = [{ distance: '', time: '', weight: '', reps: '1', painLevel: 7 }];
+  } else {
+    state.sets = [{ weight: '', reps: '', painLevel: 7 }];
+  }
   state.warmupSets = [];
   state.showWarmup = false;
   renderWarmupSection();
@@ -373,18 +377,31 @@ function renderWarmupSets() {
   const container = document.getElementById('warmup-sets-list');
   if (!container) return;
 
+  const isSprint = state.category === 'sprinting';
+
   container.innerHTML = state.warmupSets.map((set, i) => `
     <div class="warmup-set-row" data-index="${i}">
       <div class="set-number warmup-number">${i + 1}</div>
       <div class="set-inputs">
-        <div class="input-group">
-          <label>Weight (kg)</label>
-          <input type="number" class="warmup-weight" value="${set.weight}" placeholder="0" min="0" step="0.5" inputmode="decimal">
-        </div>
-        <div class="input-group">
-          <label>Reps</label>
-          <input type="number" class="warmup-reps" value="${set.reps}" placeholder="0" min="0" inputmode="numeric">
-        </div>
+        ${isSprint ? `
+          <div class="input-group">
+            <label>Distance (m)</label>
+            <input type="number" class="warmup-distance" value="${set.distance !== undefined ? set.distance : ''}" placeholder="50" min="0" step="1" inputmode="decimal">
+          </div>
+          <div class="input-group">
+            <label>Time (sec)</label>
+            <input type="number" class="warmup-time" value="${set.time !== undefined ? set.time : ''}" placeholder="7.5" min="0" step="0.1" inputmode="decimal">
+          </div>
+        ` : `
+          <div class="input-group">
+            <label>Weight (kg)</label>
+            <input type="number" class="warmup-weight" value="${set.weight}" placeholder="0" min="0" step="0.5" inputmode="decimal">
+          </div>
+          <div class="input-group">
+            <label>Reps</label>
+            <input type="number" class="warmup-reps" value="${set.reps}" placeholder="0" min="0" inputmode="numeric">
+          </div>
+        `}
       </div>
       ${state.warmupSets.length > 1 ? `
         <button class="btn-remove-set btn-remove-warmup" data-remove="${i}" aria-label="Remove warm-up set">
@@ -396,12 +413,22 @@ function renderWarmupSets() {
     </div>
   `).join('');
 
-  container.querySelectorAll('.warmup-weight').forEach((input, i) => {
-    input.addEventListener('input', () => { state.warmupSets[i].weight = input.value; });
-  });
-  container.querySelectorAll('.warmup-reps').forEach((input, i) => {
-    input.addEventListener('input', () => { state.warmupSets[i].reps = input.value; });
-  });
+  if (isSprint) {
+    container.querySelectorAll('.warmup-distance').forEach((input, i) => {
+      input.addEventListener('input', () => { state.warmupSets[i].distance = input.value; });
+    });
+    container.querySelectorAll('.warmup-time').forEach((input, i) => {
+      input.addEventListener('input', () => { state.warmupSets[i].time = input.value; });
+    });
+  } else {
+    container.querySelectorAll('.warmup-weight').forEach((input, i) => {
+      input.addEventListener('input', () => { state.warmupSets[i].weight = input.value; });
+    });
+    container.querySelectorAll('.warmup-reps').forEach((input, i) => {
+      input.addEventListener('input', () => { state.warmupSets[i].reps = input.value; });
+    });
+  }
+
   container.querySelectorAll('.btn-remove-warmup').forEach(btn => {
     btn.addEventListener('click', () => {
       state.warmupSets.splice(parseInt(btn.dataset.remove), 1);
@@ -412,6 +439,8 @@ function renderWarmupSets() {
 
 function renderSets() {
   const container = document.getElementById('sets-list');
+  const isSprint = state.category === 'sprinting';
+
   container.innerHTML = state.sets.map((set, i) => {
     const painVal = set.painLevel || 7;
     const painInfo = getPainInfo(painVal);
@@ -428,14 +457,29 @@ function renderSets() {
           ` : ''}
         </div>
         <div class="set-inputs">
-          <div class="input-group">
-            <label>Weight (kg)</label>
-            <input type="number" class="set-weight" value="${set.weight}" placeholder="0" min="0" step="0.5" inputmode="decimal">
-          </div>
-          <div class="input-group">
-            <label>Reps</label>
-            <input type="number" class="set-reps" value="${set.reps}" placeholder="0" min="0" inputmode="numeric">
-          </div>
+          ${isSprint ? `
+            <div class="input-group">
+              <label>Distance (m)</label>
+              <input type="number" class="set-distance" value="${set.distance !== undefined ? set.distance : ''}" placeholder="100" min="0" step="1" inputmode="decimal">
+            </div>
+            <div class="input-group">
+              <label>Time (sec)</label>
+              <input type="number" class="set-time" value="${set.time !== undefined ? set.time : ''}" placeholder="13.5" min="0" step="0.1" inputmode="decimal">
+            </div>
+            <div class="input-group">
+              <label>Load (kg)</label>
+              <input type="number" class="set-weight" value="${set.weight !== undefined ? set.weight : ''}" placeholder="0" min="0" step="0.5" inputmode="decimal">
+            </div>
+          ` : `
+            <div class="input-group">
+              <label>Weight (kg)</label>
+              <input type="number" class="set-weight" value="${set.weight}" placeholder="0" min="0" step="0.5" inputmode="decimal">
+            </div>
+            <div class="input-group">
+              <label>Reps</label>
+              <input type="number" class="set-reps" value="${set.reps}" placeholder="0" min="0" inputmode="numeric">
+            </div>
+          `}
         </div>
         <div class="set-pain-container">
           <div class="set-pain-header">
@@ -449,12 +493,25 @@ function renderSets() {
     `;
   }).join('');
 
-  container.querySelectorAll('.set-weight').forEach((input, i) => {
-    input.addEventListener('input', () => { state.sets[i].weight = input.value; });
-  });
-  container.querySelectorAll('.set-reps').forEach((input, i) => {
-    input.addEventListener('input', () => { state.sets[i].reps = input.value; });
-  });
+  if (isSprint) {
+    container.querySelectorAll('.set-distance').forEach((input, i) => {
+      input.addEventListener('input', () => { state.sets[i].distance = input.value; });
+    });
+    container.querySelectorAll('.set-time').forEach((input, i) => {
+      input.addEventListener('input', () => { state.sets[i].time = input.value; });
+    });
+    container.querySelectorAll('.set-weight').forEach((input, i) => {
+      input.addEventListener('input', () => { state.sets[i].weight = input.value; });
+    });
+  } else {
+    container.querySelectorAll('.set-weight').forEach((input, i) => {
+      input.addEventListener('input', () => { state.sets[i].weight = input.value; });
+    });
+    container.querySelectorAll('.set-reps').forEach((input, i) => {
+      input.addEventListener('input', () => { state.sets[i].reps = input.value; });
+    });
+  }
+
   container.querySelectorAll('.btn-remove-set:not(.btn-remove-warmup)').forEach(btn => {
     btn.addEventListener('click', () => {
       state.sets.splice(parseInt(btn.dataset.remove), 1);
@@ -588,14 +645,27 @@ function initDayDetail() {
           ${(w.warmupSets && w.warmupSets.length > 0) ? `
             <div class="workout-entry-warmup">
               <span class="warmup-tag">🔥 Warm-up</span>
-              ${w.warmupSets.map((s, i) => `
+              ${w.warmupSets.map((s, i) => {
+                let detailStr = '';
+                if (w.category === 'sprinting' || s.distance !== undefined || s.time !== undefined) {
+                  const parts = [];
+                  if (s.distance) parts.push(`${s.distance} m`);
+                  if (s.time) parts.push(`${s.time} s`);
+                  if (s.weight && s.weight > 0) parts.push(`${s.weight} kg load`);
+                  if (s.reps && s.reps > 1) parts.push(`${s.reps} reps`);
+                  detailStr = parts.length > 0 ? parts.join(' × ') : `${s.weight} kg × ${s.reps} reps`;
+                } else {
+                  detailStr = `${s.weight} kg × ${s.reps} reps`;
+                }
+                return `
                 <div class="workout-set-line warmup-line">
                   <div class="workout-set-info">
                     <span class="set-label">W${i + 1}</span>
-                    <span class="set-detail">${s.weight} kg × ${s.reps} reps</span>
+                    <span class="set-detail">${escapeHtml(detailStr)}</span>
                   </div>
                 </div>
-              `).join('')}
+              `;
+              }).join('')}
             </div>
           ` : ''}
           <div class="workout-entry-sets">
@@ -606,11 +676,24 @@ function initDayDetail() {
               else if (setPain <= 6) painClass = 'level-moderate';
               else if (setPain <= 8) painClass = 'level-optimal';
               else painClass = 'level-high';
+
+              let detailStr = '';
+              if (w.category === 'sprinting' || s.distance !== undefined || s.time !== undefined) {
+                const parts = [];
+                if (s.distance) parts.push(`${s.distance} m`);
+                if (s.time) parts.push(`${s.time} s`);
+                if (s.weight && s.weight > 0) parts.push(`${s.weight} kg load`);
+                if (s.reps && s.reps > 1) parts.push(`${s.reps} reps`);
+                detailStr = parts.length > 0 ? parts.join(' × ') : `${s.weight} kg × ${s.reps} reps`;
+              } else {
+                detailStr = `${s.weight} kg × ${s.reps} reps`;
+              }
+
               return `
               <div class="workout-set-line">
                 <div class="workout-set-info">
                   <span class="set-label">Set ${i + 1}</span>
-                  <span class="set-detail">${s.weight} kg × ${s.reps} reps</span>
+                  <span class="set-detail">${escapeHtml(detailStr)}</span>
                 </div>
                 <div class="workout-set-pain">
                   <div class="pain-bar pain-bar-mini">
@@ -795,7 +878,11 @@ function attachListeners() {
   });
 
   document.getElementById('btn-add-set').addEventListener('click', () => {
-    state.sets.push({ weight: '', reps: '', painLevel: 7 });
+    if (state.category === 'sprinting') {
+      state.sets.push({ distance: '', time: '', weight: '', reps: '1', painLevel: 7 });
+    } else {
+      state.sets.push({ weight: '', reps: '', painLevel: 7 });
+    }
     renderSets();
   });
 
@@ -804,24 +891,45 @@ function attachListeners() {
     const content = document.getElementById('warmup-content');
     content.style.display = state.showWarmup ? 'block' : 'none';
     if (state.showWarmup && state.warmupSets.length === 0) {
-      state.warmupSets.push({ weight: '', reps: '' });
+      if (state.category === 'sprinting') {
+        state.warmupSets.push({ distance: '', time: '', weight: '', reps: '1' });
+      } else {
+        state.warmupSets.push({ weight: '', reps: '' });
+      }
     }
     renderWarmupSets();
   });
 
   document.getElementById('btn-add-warmup-set').addEventListener('click', () => {
-    state.warmupSets.push({ weight: '', reps: '' });
+    if (state.category === 'sprinting') {
+      state.warmupSets.push({ distance: '', time: '', weight: '', reps: '1' });
+    } else {
+      state.warmupSets.push({ weight: '', reps: '' });
+    }
     renderWarmupSets();
   });
 
   document.getElementById('btn-save-workout').addEventListener('click', () => {
-    const validSets = state.sets.filter(s => s.weight !== '' && s.reps !== '');
+    const isSprint = state.category === 'sprinting';
+
+    let validSets = [];
+    if (isSprint) {
+      validSets = state.sets.filter(s => (s.distance && s.distance !== '') || (s.time && s.time !== '') || (s.weight && s.weight !== ''));
+    } else {
+      validSets = state.sets.filter(s => s.weight !== '' && s.reps !== '');
+    }
+
     if (validSets.length === 0) {
-      showToast('Please enter at least one set', 'toast-error');
+      showToast(isSprint ? 'Please enter distance or time for at least one set' : 'Please enter at least one set', 'toast-error');
       return;
     }
 
-    const validWarmups = state.warmupSets.filter(s => s.weight !== '' && s.reps !== '');
+    let validWarmups = [];
+    if (isSprint) {
+      validWarmups = state.warmupSets.filter(s => (s.distance && s.distance !== '') || (s.time && s.time !== '') || (s.weight && s.weight !== ''));
+    } else {
+      validWarmups = state.warmupSets.filter(s => s.weight !== '' && s.reps !== '');
+    }
 
     const workout = {
       date: state.date,
@@ -829,19 +937,29 @@ function attachListeners() {
       equipmentType: state.equipmentType,
       category: state.category,
       exercise: state.exercise,
-      warmupSets: validWarmups.map(s => ({
-        weight: parseFloat(s.weight) || 0,
-        reps: parseInt(s.reps) || 0
-      })),
-      sets: validSets.map(s => ({
-        weight: parseFloat(s.weight) || 0,
-        reps: parseInt(s.reps) || 0,
-        painLevel: s.painLevel || 7
-      }))
+      warmupSets: validWarmups.map(s => {
+        const item = {
+          weight: parseFloat(s.weight) || 0,
+          reps: parseInt(s.reps) || 0
+        };
+        if (s.distance !== undefined && s.distance !== '') item.distance = parseFloat(s.distance);
+        if (s.time !== undefined && s.time !== '') item.time = parseFloat(s.time);
+        return item;
+      }),
+      sets: validSets.map(s => {
+        const item = {
+          weight: parseFloat(s.weight) || 0,
+          reps: parseInt(s.reps) || 0,
+          painLevel: s.painLevel || 7
+        };
+        if (s.distance !== undefined && s.distance !== '') item.distance = parseFloat(s.distance);
+        if (s.time !== undefined && s.time !== '') item.time = parseFloat(s.time);
+        return item;
+      })
     };
 
     saveWorkout(workout);
-    showToast('Workout saved! 💪', 'toast-success');
+    showToast(isSprint ? 'Sprint workout saved! ⚡' : 'Workout saved! 💪', 'toast-success');
     showView('exercises');
   });
 
