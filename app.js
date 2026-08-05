@@ -298,6 +298,61 @@ function initExercises() {
   document.getElementById('btn-add-custom').style.display = 'flex';
 }
 
+let editingCustomState = null;
+
+function openEditCustomModal(exName) {
+  editingCustomState = {
+    oldName: exName,
+    oldBodyPart: state.bodyPart,
+    oldEquipmentType: state.equipmentType,
+    oldCategory: state.category,
+    oldKey: getCustomKey(state.bodyPart, state.equipmentType, state.category)
+  };
+
+  const nameInput = document.getElementById('edit-custom-name-input');
+  const bodySelect = document.getElementById('edit-custom-body-select');
+  const equipSelect = document.getElementById('edit-custom-equip-select');
+
+  nameInput.value = exName;
+  bodySelect.value = state.bodyPart || 'upper';
+  equipSelect.value = state.equipmentType || 'machine';
+
+  updateEditModalCategoryOptions();
+  const catSelect = document.getElementById('edit-custom-cat-select');
+  if (state.category) catSelect.value = state.category;
+
+  document.getElementById('modal-edit-custom').classList.remove('hidden');
+  setTimeout(() => nameInput.focus(), 100);
+}
+
+function updateEditModalCategoryOptions() {
+  const bodyVal = document.getElementById('edit-custom-body-select').value;
+  const catSelect = document.getElementById('edit-custom-cat-select');
+  if (!catSelect) return;
+
+  if (bodyVal === 'upper') {
+    catSelect.innerHTML = `
+      <option value="push">Push (Chest, Shoulders, Triceps)</option>
+      <option value="pull">Pull (Back, Biceps, Rear Delts)</option>
+      <option value="core">Core (Abs, Obliques)</option>
+    `;
+  } else {
+    catSelect.innerHTML = `
+      <option value="quads">Quads</option>
+      <option value="hamstrings">Hamstrings</option>
+      <option value="glutes">Glutes</option>
+      <option value="adductors">Adductors / Abductors</option>
+      <option value="calves">Calves</option>
+      <option value="sprinting">Sprinting</option>
+    `;
+  }
+}
+
+function closeEditCustomModal() {
+  document.getElementById('modal-edit-custom').classList.add('hidden');
+  editingCustomState = null;
+}
+
 function renderExerciseList(query) {
   const list = document.getElementById('exercise-list');
   const exercises = getExercises(state.bodyPart, state.equipmentType, state.category);
@@ -335,9 +390,26 @@ function renderExerciseList(query) {
           </svg>
         </div>
         <span class="ex-name">${escapeHtml(ex)}</span>
-        <svg class="ex-arrow" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-          <path d="M9 18l6-6-6-6"/>
-        </svg>
+        ${isCustom ? `
+          <div class="ex-actions" onclick="event.stopPropagation()">
+            <button class="btn-ex-edit" data-exercise="${escapeAttr(ex)}" aria-label="Edit exercise" title="Edit exercise">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/>
+                <path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/>
+              </svg>
+            </button>
+            <button class="btn-ex-delete" data-exercise="${escapeAttr(ex)}" aria-label="Delete exercise" title="Delete exercise">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="3 6 5 6 21 6"/>
+                <path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/>
+              </svg>
+            </button>
+          </div>
+        ` : `
+          <svg class="ex-arrow" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M9 18l6-6-6-6"/>
+          </svg>
+        `}
       </div>
     `;
   }).join('');
@@ -346,6 +418,24 @@ function renderExerciseList(query) {
     el.addEventListener('click', () => {
       state.exercise = el.dataset.exercise;
       showView('log');
+    });
+  });
+
+  list.querySelectorAll('.btn-ex-delete').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const exName = btn.dataset.exercise;
+      deleteCustomExercise(customKey, exName);
+      showToast('Exercise deleted 🗑️', 'toast-success');
+      renderExerciseList(document.getElementById('search-exercises').value);
+    });
+  });
+
+  list.querySelectorAll('.btn-ex-edit').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const exName = btn.dataset.exercise;
+      openEditCustomModal(exName);
     });
   });
 }
@@ -1103,6 +1193,48 @@ function attachListeners() {
   document.getElementById('custom-exercise-input').addEventListener('keydown', (e) => {
     if (e.key === 'Enter') {
       document.getElementById('btn-modal-save').click();
+    }
+  });
+
+  // Edit Custom Exercise Modal
+  document.getElementById('edit-custom-body-select').addEventListener('change', () => {
+    updateEditModalCategoryOptions();
+  });
+
+  document.getElementById('btn-edit-modal-cancel').addEventListener('click', () => {
+    closeEditCustomModal();
+  });
+
+  document.getElementById('modal-edit-custom').addEventListener('click', (e) => {
+    if (e.target === e.currentTarget) closeEditCustomModal();
+  });
+
+  document.getElementById('edit-custom-name-input').addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') {
+      document.getElementById('btn-edit-modal-save').click();
+    }
+  });
+
+  document.getElementById('btn-edit-modal-save').addEventListener('click', () => {
+    if (!editingCustomState) return;
+    const newName = document.getElementById('edit-custom-name-input').value.trim();
+    if (!newName) {
+      showToast('Please enter an exercise name', 'toast-error');
+      return;
+    }
+
+    const newBodyPart = document.getElementById('edit-custom-body-select').value;
+    const newEquipType = document.getElementById('edit-custom-equip-select').value;
+    const newCategory = document.getElementById('edit-custom-cat-select').value;
+    const newKey = getCustomKey(newBodyPart, newEquipType, newCategory);
+
+    const success = editCustomExercise(editingCustomState.oldKey, editingCustomState.oldName, newKey, newName);
+    if (success) {
+      showToast('Exercise updated! ✏️', 'toast-success');
+      closeEditCustomModal();
+      renderExerciseList(document.getElementById('search-exercises').value);
+    } else {
+      showToast('Failed to update exercise', 'toast-error');
     }
   });
 

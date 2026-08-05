@@ -511,6 +511,39 @@
     </div>
   </div>
 
+  <!-- Modal: Edit Custom Exercise -->
+  <div id="modal-edit-custom" class="modal-overlay hidden">
+    <div class="modal">
+      <h3>Edit Custom Exercise</h3>
+      <div class="input-group mb-12">
+        <label class="input-label">Exercise Name</label>
+        <input type="text" id="edit-custom-name-input" placeholder="Exercise name..." autocomplete="off">
+      </div>
+      <div class="input-group mb-12">
+        <label class="input-label">Body Part</label>
+        <select id="edit-custom-body-select" class="modal-select">
+          <option value="upper">Upper Body</option>
+          <option value="lower">Lower Body</option>
+        </select>
+      </div>
+      <div class="input-group mb-12">
+        <label class="input-label">Equipment</label>
+        <select id="edit-custom-equip-select" class="modal-select">
+          <option value="machine">Machine</option>
+          <option value="freeweight">Free Weight</option>
+        </select>
+      </div>
+      <div class="input-group mb-16">
+        <label class="input-label">Category / Muscle Group</label>
+        <select id="edit-custom-cat-select" class="modal-select"></select>
+      </div>
+      <div class="modal-actions">
+        <button id="btn-edit-modal-cancel" class="btn btn-secondary">Cancel</button>
+        <button id="btn-edit-modal-save" class="btn btn-primary">Save Changes</button>
+      </div>
+    </div>
+  </div>
+
   <!-- Modal: Workout Options (Edit / Delete) -->
   <div id="modal-workout-actions" class="modal-overlay hidden">
     <div class="modal action-modal">

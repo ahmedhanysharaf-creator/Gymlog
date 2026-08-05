@@ -313,6 +313,52 @@ function addCustomExercise(key, exerciseName) {
   return false;
 }
 
+function deleteCustomExercise(key, exerciseName) {
+  if (!currentUid) return false;
+  const customs = { ...customExercisesCache };
+  if (!customs[key]) return false;
+  customs[key] = customs[key].filter(ex => ex !== exerciseName);
+  customExercisesCache = customs;
+  db.collection('users').doc(currentUid).collection('settings')
+    .doc('customExercises').set(customs, { merge: true })
+    .catch(err => console.error('Delete custom exercise error:', err));
+  return true;
+}
+
+function editCustomExercise(oldKey, oldName, newKey, newName) {
+  if (!currentUid) return false;
+  const customs = { ...customExercisesCache };
+  const trimmedNew = newName.trim();
+  if (!trimmedNew) return false;
+
+  if (oldKey === newKey) {
+    if (!customs[oldKey]) return false;
+    const idx = customs[oldKey].indexOf(oldName);
+    if (idx !== -1) {
+      customs[oldKey][idx] = trimmedNew;
+      customExercisesCache = customs;
+      db.collection('users').doc(currentUid).collection('settings')
+        .doc('customExercises').set(customs, { merge: true })
+        .catch(err => console.error('Edit custom exercise error:', err));
+      return true;
+    }
+    return false;
+  } else {
+    if (customs[oldKey]) {
+      customs[oldKey] = customs[oldKey].filter(ex => ex !== oldName);
+    }
+    if (!customs[newKey]) customs[newKey] = [];
+    if (!customs[newKey].includes(trimmedNew)) {
+      customs[newKey].push(trimmedNew);
+    }
+    customExercisesCache = customs;
+    db.collection('users').doc(currentUid).collection('settings')
+      .doc('customExercises').set(customs, { merge: true })
+      .catch(err => console.error('Move custom exercise error:', err));
+    return true;
+  }
+}
+
 function getCustomKey(bodyPart, equipmentType, category) {
   const equip = equipmentType === 'machine' ? 'Machine' : 'FreeWeight';
   const cat = capitalize(category || '');
