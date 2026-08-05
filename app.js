@@ -14,7 +14,8 @@ const state = {
   sets: [],             // [{ weight: '', reps: '', painLevel: 7 }, ...]
   warmupSets: [],       // [{ weight: '', reps: '' }, ...]
   showWarmup: false,
-  selectedWarmups: {}   // { 'Cycling': 10, 'Treadmill': 5 }
+  selectedWarmups: {},  // { 'Cycling': 10, 'Treadmill': 5 }
+  fromDayDetail: false  // whether navigated from Day Detail view
 };
 
 let calendarInstance = null;
@@ -165,6 +166,11 @@ function initDate() {
 
 /* ---------- Daily General Warm-up View ---------- */
 function initGeneralWarmup() {
+  const backBtn = document.querySelector('#view-general-warmup .btn-back');
+  if (backBtn) {
+    backBtn.dataset.back = state.fromDayDetail ? 'day-detail' : 'date';
+  }
+
   updateBreadcrumb('breadcrumb-general-warmup', [{ label: formatDate(state.date) }]);
 
   const grid = document.getElementById('warmup-options-grid');
@@ -919,6 +925,7 @@ function attachListeners() {
   document.getElementById('btn-new-workout').addEventListener('click', () => {
     state.date = getTodayStr();
     state.selectedWarmups = {};
+    state.fromDayDetail = false;
     showView('date');
   });
 
@@ -950,6 +957,7 @@ function attachListeners() {
     }
     state.date = val;
     state.selectedWarmups = {};
+    state.fromDayDetail = false;
     showView('general-warmup');
   });
 
@@ -1157,12 +1165,14 @@ function attachListeners() {
     }
   });
 
-  // Day Detail: Add More Exercises -> Start from Body Part Selection
+  // Day Detail: Add More Exercises -> Start from Warm-up Selection
   const btnAddMore = document.getElementById('btn-add-more');
   if (btnAddMore) {
     btnAddMore.addEventListener('click', () => {
       if (!state.date) state.date = getTodayStr();
-      showView('body-part');
+      state.selectedWarmups = {};
+      state.fromDayDetail = true;
+      showView('general-warmup');
     });
   }
 }
