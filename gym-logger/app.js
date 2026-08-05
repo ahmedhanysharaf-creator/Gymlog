@@ -1157,11 +1157,14 @@ function attachListeners() {
     }
   });
 
-  // Day Detail: Add More Exercises -> Start from Daily Warmup
-  document.getElementById('btn-add-more').addEventListener('click', () => {
-    state.selectedWarmups = {};
-    showView('general-warmup');
-  });
+  // Day Detail: Add More Exercises -> Start from Body Part Selection
+  const btnAddMore = document.getElementById('btn-add-more');
+  if (btnAddMore) {
+    btnAddMore.addEventListener('click', () => {
+      if (!state.date) state.date = getTodayStr();
+      showView('body-part');
+    });
+  }
 }
 
 /* ---------- Breadcrumb ---------- */
