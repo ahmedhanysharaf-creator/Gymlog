@@ -419,3 +419,60 @@ function getTodayStr() {
   const d = new Date();
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 }
+
+/* ---------- Data Export & Import ---------- */
+function exportDataToJson() {
+  const data = {
+    version: 1,
+    exportedAt: new Date().toISOString(),
+    userUid: currentUid,
+    workouts: workoutsCache,
+    customExercises: customExercisesCache,
+    customWarmups: customWarmupsCache
+  };
+  const jsonStr = JSON.stringify(data, null, 2);
+  const blob = new Blob([jsonStr], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  const dateStr = getTodayStr();
+  a.download = `gymlog_backup_${dateStr}.json`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
+async function importDataFromJson(jsonObj) {
+  if (!currentUid) throw new Error("User must be signed in to import data.");
+  if (!jsonObj || !Array.isArray(jsonObj.workouts)) {
+    throw new Error("Invalid backup file. Workout data array missing.");
+  }
+  
+  let count = 0;
+  const workoutsColl = db.collection('users').doc(currentUid).collection('workouts');
+  
+  // Save workouts to Firestore
+  for (const w of jsonObj.workouts) {
+    if (!w.date || !w.exercise) continue;
+    const docId = w.id || generateId();
+    const cleanWorkout = { ...w, id: docId, updatedAt: new Date().toISOString() };
+    await workoutsColl.doc(docId).set(cleanWorkout, { merge: true });
+    count++;
+  }
+
+  // Save custom exercises if present
+  if (jsonObj.customExercises && typeof jsonObj.customExercises === 'object') {
+    const custRef = db.collection('users').doc(currentUid).collection('settings').doc('customExercises');
+    await custRef.set(jsonObj.customExercises, { merge: true });
+  }
+
+  // Save custom warmups if present
+  if (Array.isArray(jsonObj.customWarmups)) {
+    const warmRef = db.collection('users').doc(currentUid).collection('settings').doc('customWarmups');
+    await warmRef.set({ activities: jsonObj.customWarmups }, { merge: true });
+  }
+
+  return count;
+}
+

@@ -21,9 +21,12 @@ const state = {
 let calendarInstance = null;
 let listenersAttached = false;
 
-/* ---------- Authentication ---------- */
+/* ---------- Authentication & Backup ---------- */
+let currentAuthMode = 'signin'; // 'signin' | 'signup'
+
 document.addEventListener('DOMContentLoaded', () => {
   attachAuthListeners();
+  attachBackupListeners();
 
   auth.onAuthStateChanged(async (user) => {
     if (user) {
@@ -40,6 +43,81 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 function attachAuthListeners() {
+  const tabSignin = document.getElementById('tab-signin');
+  const tabSignup = document.getElementById('tab-signup');
+  const btnAuthSubmit = document.getElementById('btn-auth-submit');
+  const formAuth = document.getElementById('form-auth');
+  const authAlert = document.getElementById('auth-alert');
+
+  function setAuthMode(mode) {
+    currentAuthMode = mode;
+    if (mode === 'signin') {
+      tabSignin.classList.add('active');
+      tabSignup.classList.remove('active');
+      btnAuthSubmit.textContent = 'Sign In';
+    } else {
+      tabSignup.classList.add('active');
+      tabSignin.classList.remove('active');
+      btnAuthSubmit.textContent = 'Create Account';
+    }
+    if (authAlert) {
+      authAlert.classList.add('hidden');
+      authAlert.textContent = '';
+      authAlert.className = 'auth-alert hidden';
+    }
+  }
+
+  if (tabSignin) tabSignin.addEventListener('click', () => setAuthMode('signin'));
+  if (tabSignup) tabSignup.addEventListener('click', () => setAuthMode('signup'));
+
+  if (formAuth) {
+    formAuth.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const email = document.getElementById('auth-email').value.trim();
+      const password = document.getElementById('auth-password').value;
+
+      if (!email || !password) {
+        showAuthAlert('Please enter both email and password.', 'error');
+        return;
+      }
+
+      btnAuthSubmit.disabled = true;
+      btnAuthSubmit.textContent = currentAuthMode === 'signin' ? 'Signing In...' : 'Creating Account...';
+
+      try {
+        if (currentAuthMode === 'signin') {
+          await auth.signInWithEmailAndPassword(email, password);
+        } else {
+          await auth.createUserWithEmailAndPassword(email, password);
+          showToast('Account created successfully!', 'toast-success');
+        }
+      } catch (err) {
+        console.error('Auth error:', err);
+        let errorMsg = 'Authentication failed. Please check your details.';
+        if (err.code === 'auth/wrong-password' || err.code === 'auth/user-not-found' || err.code === 'auth/invalid-credential') {
+          errorMsg = 'Invalid email or password.';
+        } else if (err.code === 'auth/email-already-in-use') {
+          errorMsg = 'An account with this email already exists. Try signing in.';
+        } else if (err.code === 'auth/weak-password') {
+          errorMsg = 'Password must be at least 6 characters long.';
+        } else if (err.code === 'auth/invalid-email') {
+          errorMsg = 'Please enter a valid email address.';
+        }
+        showAuthAlert(errorMsg, 'error');
+      } finally {
+        btnAuthSubmit.disabled = false;
+        btnAuthSubmit.textContent = currentAuthMode === 'signin' ? 'Sign In' : 'Create Account';
+      }
+    });
+  }
+
+  function showAuthAlert(msg, type) {
+    if (!authAlert) return;
+    authAlert.textContent = msg;
+    authAlert.className = `auth-alert ${type}`;
+    authAlert.classList.remove('hidden');
+  }
+
   const btnGoogle = document.getElementById('btn-google-signin');
   if (btnGoogle) {
     btnGoogle.addEventListener('click', async () => {
@@ -61,7 +139,7 @@ function attachAuthListeners() {
         }
       } finally {
         btnGoogle.disabled = false;
-        btnGoogle.querySelector('.signin-btn-text').textContent = 'Sign in with Google';
+        btnGoogle.querySelector('.signin-btn-text').textContent = 'Continue with Google';
       }
     });
   }
@@ -74,10 +152,55 @@ function attachAuthListeners() {
   }
 }
 
+function attachBackupListeners() {
+  const btnExport = document.getElementById('btn-export-json');
+  const btnImport = document.getElementById('btn-import-json');
+  const inputImport = document.getElementById('input-import-file');
+
+  if (btnExport) {
+    btnExport.addEventListener('click', () => {
+      try {
+        exportDataToJson();
+        showToast('Backup JSON downloaded successfully!', 'toast-success');
+      } catch (err) {
+        console.error('Export error:', err);
+        showToast('Failed to export backup.', 'toast-error');
+      }
+    });
+  }
+
+  if (btnImport && inputImport) {
+    btnImport.addEventListener('click', () => {
+      inputImport.click();
+    });
+
+    inputImport.addEventListener('change', async (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+
+      try {
+        const text = await file.text();
+        const jsonObj = JSON.parse(text);
+        showToast('Importing backup workouts...', 'toast-info');
+        const count = await importDataFromJson(jsonObj);
+        showToast(`Successfully imported ${count} workouts!`, 'toast-success');
+        if (typeof calendarInstance !== 'undefined' && calendarInstance) {
+          calendarInstance.refresh();
+        }
+      } catch (err) {
+        console.error('Import error:', err);
+        showToast(err.message || 'Failed to import JSON file. Please check file format.', 'toast-error');
+      } finally {
+        inputImport.value = '';
+      }
+    });
+  }
+}
+
 function updateUserInfo(user) {
   const nameEl = document.getElementById('user-display-name');
   const avatarEl = document.getElementById('user-avatar');
-  if (nameEl) nameEl.textContent = user.displayName || user.email || 'User';
+  if (nameEl) nameEl.textContent = user.displayName || user.email?.split('@')[0] || 'User';
   if (avatarEl && user.photoURL) {
     avatarEl.src = user.photoURL;
     avatarEl.style.display = 'block';
