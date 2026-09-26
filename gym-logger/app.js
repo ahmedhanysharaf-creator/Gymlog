@@ -22,8 +22,6 @@ let calendarInstance = null;
 let listenersAttached = false;
 
 /* ---------- Authentication & Backup ---------- */
-let currentAuthMode = 'signin'; // 'signin' | 'signup'
-
 document.addEventListener('DOMContentLoaded', () => {
   attachAuthListeners();
   attachBackupListeners();
@@ -35,7 +33,6 @@ document.addEventListener('DOMContentLoaded', () => {
       showView('home');
       attachListeners();
       updateUserInfo(user);
-      await ensureUserPasswordSet(user);
     } else {
       teardownDataLayer();
       showView('login');
@@ -44,119 +41,6 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 function attachAuthListeners() {
-  const tabSignin = document.getElementById('tab-signin');
-  const tabSignup = document.getElementById('tab-signup');
-  const btnAuthSubmit = document.getElementById('btn-auth-submit');
-  const formAuth = document.getElementById('form-auth');
-  const authAlert = document.getElementById('auth-alert');
-
-  function setAuthMode(mode) {
-    currentAuthMode = mode;
-    if (mode === 'signin') {
-      tabSignin.classList.add('active');
-      tabSignup.classList.remove('active');
-      btnAuthSubmit.textContent = 'Sign In';
-    } else {
-      tabSignup.classList.add('active');
-      tabSignin.classList.remove('active');
-      btnAuthSubmit.textContent = 'Create Account';
-    }
-    if (authAlert) {
-      authAlert.classList.add('hidden');
-      authAlert.textContent = '';
-      authAlert.className = 'auth-alert hidden';
-    }
-  }
-
-  if (tabSignin) tabSignin.addEventListener('click', () => setAuthMode('signin'));
-  if (tabSignup) tabSignup.addEventListener('click', () => setAuthMode('signup'));
-
-  if (formAuth) {
-    formAuth.addEventListener('submit', async (e) => {
-      e.preventDefault();
-      const email = document.getElementById('auth-email').value.trim();
-      const password = document.getElementById('auth-password').value;
-
-      if (!email || !password) {
-        showAuthAlert('Please enter both email and password.', 'error');
-        return;
-      }
-
-      btnAuthSubmit.disabled = true;
-      btnAuthSubmit.textContent = currentAuthMode === 'signin' ? 'Signing In...' : 'Creating Account...';
-
-      try {
-        if (currentAuthMode === 'signin') {
-          await auth.signInWithEmailAndPassword(email, password);
-        } else {
-          await auth.createUserWithEmailAndPassword(email, password);
-          showToast('Account created successfully!', 'toast-success');
-        }
-      } catch (err) {
-        console.error('Auth error:', err);
-        let errorMsg = 'Authentication failed. Please check your details.';
-        if (err.code === 'auth/wrong-password' || err.code === 'auth/user-not-found' || err.code === 'auth/invalid-credential') {
-          errorMsg = 'Invalid email or password.';
-        } else if (err.code === 'auth/email-already-in-use') {
-          errorMsg = 'An account with this email already exists. Try signing in.';
-        } else if (err.code === 'auth/weak-password') {
-          errorMsg = 'Password must be at least 6 characters long.';
-        } else if (err.code === 'auth/invalid-email') {
-          errorMsg = 'Please enter a valid email address.';
-        }
-        showAuthAlert(errorMsg, 'error');
-      } finally {
-        btnAuthSubmit.disabled = false;
-        btnAuthSubmit.textContent = currentAuthMode === 'signin' ? 'Sign In' : 'Create Account';
-      }
-    });
-  }
-
-  function showAuthAlert(msg, type) {
-    if (!authAlert) return;
-    authAlert.textContent = msg;
-    authAlert.className = `auth-alert ${type}`;
-    authAlert.classList.remove('hidden');
-  }
-
-  const btnForgot = document.getElementById('btn-forgot-password');
-  if (btnForgot) {
-    btnForgot.addEventListener('click', async () => {
-      const emailInput = document.getElementById('auth-email');
-      let email = emailInput ? emailInput.value.trim() : '';
-      if (!email) {
-        email = prompt('Enter your account email to receive a password reset link:');
-        if (email) {
-          email = email.trim();
-          if (emailInput) emailInput.value = email;
-        } else {
-          showAuthAlert('Please enter your email address above to reset your password.', 'error');
-          if (emailInput) emailInput.focus();
-          return;
-        }
-      }
-      btnForgot.disabled = true;
-      btnForgot.textContent = 'Sending...';
-      try {
-        await auth.sendPasswordResetEmail(email);
-        showAuthAlert('Password reset email sent! Check your inbox (and spam folder).', 'success');
-        showToast('Password reset email sent!', 'toast-success');
-      } catch (err) {
-        console.error('Password reset error:', err);
-        if (err.code === 'auth/user-not-found') {
-          showAuthAlert('No account found with this email.', 'error');
-        } else if (err.code === 'auth/invalid-email') {
-          showAuthAlert('Please enter a valid email address.', 'error');
-        } else {
-          showAuthAlert(err.message || 'Failed to send reset email. Try again.', 'error');
-        }
-      } finally {
-        btnForgot.disabled = false;
-        btnForgot.textContent = 'Forgot password?';
-      }
-    });
-  }
-
   const btnGoogle = document.getElementById('btn-google-signin');
   if (btnGoogle) {
     btnGoogle.addEventListener('click', async () => {
@@ -239,65 +123,12 @@ function attachBackupListeners() {
 function updateUserInfo(user) {
   const nameEl = document.getElementById('user-display-name');
   const avatarEl = document.getElementById('user-avatar');
-  if (nameEl) {
-    nameEl.textContent = user.displayName || user.email?.split('@')[0] || 'User';
-    nameEl.title = `Signed in as: ${user.email || 'User'}`;
-  }
+  if (nameEl) nameEl.textContent = user.displayName || user.email?.split('@')[0] || 'User';
   if (avatarEl && user.photoURL) {
     avatarEl.src = user.photoURL;
     avatarEl.style.display = 'block';
   } else if (avatarEl) {
     avatarEl.style.display = 'none';
-  }
-
-  const btnPwd = document.getElementById('btn-password-info');
-  if (btnPwd) {
-    btnPwd.onclick = () => {
-      alert(`Account Email: ${user.email}\nPassword: Ahmed@2011\n\nYou can sign in using this email and password anytime!`);
-      ensureUserPasswordSet(user, true);
-    };
-  }
-}
-
-/* ---------- Password Management ---------- */
-async function ensureUserPasswordSet(user, explicit = false) {
-  if (!user || !user.email) return;
-  const targetPassword = 'Ahmed@2011';
-
-  if (!explicit && localStorage.getItem('gymlog_pwd_set_' + user.uid) === targetPassword) {
-    return;
-  }
-
-  try {
-    const cred = firebase.auth.EmailAuthProvider.credential(user.email, targetPassword);
-    await user.linkWithCredential(cred);
-    localStorage.setItem('gymlog_pwd_set_' + user.uid, targetPassword);
-    showToast(`Password set to ${targetPassword}! Log in with ${user.email} anytime.`, 'toast-success');
-    console.log(`[GymLog] Successfully linked password to account ${user.email}`);
-  } catch (err) {
-    if (err.code === 'auth/provider-already-linked' || err.code === 'auth/credential-already-in-use') {
-      try {
-        await user.updatePassword(targetPassword);
-        localStorage.setItem('gymlog_pwd_set_' + user.uid, targetPassword);
-        showToast(`Password updated to ${targetPassword}! Log in with ${user.email} anytime.`, 'toast-success');
-        console.log(`[GymLog] Password updated to ${targetPassword} for account ${user.email}`);
-      } catch (updateErr) {
-        console.error('[GymLog] Update password error:', updateErr);
-        if (explicit) {
-          showToast('Failed to update password: ' + (updateErr.message || 'Unknown error'), 'toast-error');
-        }
-      }
-    } else if (err.code === 'auth/requires-recent-login') {
-      console.warn('[GymLog] Password setting requires recent login.');
-      if (explicit) {
-        showToast('Please sign out and sign back in with Google once, then try again.', 'toast-error');
-      }
-    } else {
-      console.error('[GymLog] Error linking password:', err);
-      if (explicit) {
-        showToast('Notice: ' + (err.message || 'Could not set password'), 'toast-error');
-      }
-    }
   }
 }
 
