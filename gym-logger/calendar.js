@@ -85,7 +85,6 @@ class Calendar {
             </button>
           </div>
           <div class="cal-actions">
-            <button class="cal-today-btn" id="cal-today">Today</button>
             <div class="cal-view-toggle">
               <button class="cal-toggle-btn active" id="toggle-week">Week</button>
               <button class="cal-toggle-btn" id="toggle-month">Month</button>
@@ -156,7 +155,6 @@ class Calendar {
             </button>
           </div>
           <div class="cal-actions">
-            <button class="cal-today-btn" id="cal-today">Today</button>
             <div class="cal-view-toggle">
               <button class="cal-toggle-btn" id="toggle-week">Week</button>
               <button class="cal-toggle-btn active" id="toggle-month">Month</button>
@@ -209,7 +207,6 @@ class Calendar {
   attachWeekListeners() {
     this.container.querySelector('#cal-prev').addEventListener('click', () => this.prev());
     this.container.querySelector('#cal-next').addEventListener('click', () => this.next());
-    this.container.querySelector('#cal-today').addEventListener('click', () => this.today());
     this.container.querySelector('#toggle-week').addEventListener('click', () => this.setMode('week'));
     this.container.querySelector('#toggle-month').addEventListener('click', () => this.setMode('month'));
 
@@ -229,7 +226,6 @@ class Calendar {
   attachMonthListeners() {
     this.container.querySelector('#cal-prev').addEventListener('click', () => this.prev());
     this.container.querySelector('#cal-next').addEventListener('click', () => this.next());
-    this.container.querySelector('#cal-today').addEventListener('click', () => this.today());
     this.container.querySelector('#toggle-week').addEventListener('click', () => this.setMode('week'));
     this.container.querySelector('#toggle-month').addEventListener('click', () => this.setMode('month'));
 

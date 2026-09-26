@@ -306,24 +306,6 @@ button {
   gap: 8px;
 }
 
-.cal-today-btn {
-  padding: 5px 12px;
-  border-radius: var(--r-sm);
-  font-size: 0.76rem;
-  font-weight: 600;
-  color: var(--text-secondary);
-  background: var(--bg-input);
-  border: 1px solid var(--border);
-  cursor: pointer;
-  transition: all var(--duration) var(--ease);
-}
-
-.cal-today-btn:hover {
-  color: var(--text);
-  border-color: var(--border-hover);
-  background: var(--bg-card-hover);
-}
-
 .cal-view-toggle {
   display: flex;
   background: var(--bg-input);
