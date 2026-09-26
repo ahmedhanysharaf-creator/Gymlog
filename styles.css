@@ -2395,9 +2395,29 @@ input[type="range"]::-moz-range-thumb {
   text-decoration: underline;
 }
 
+.auth-alert.hidden {
+  display: none !important;
+}
+
 .btn-forgot-password:disabled {
   opacity: 0.5;
   cursor: not-allowed;
+}
+
+.auth-hint {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  text-align: center;
+  margin-top: 10px;
+}
+
+.auth-hint code {
+  color: var(--accent);
+  background: rgba(0, 212, 255, 0.1);
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-family: inherit;
+  font-weight: 600;
 }
 
 .auth-divider {

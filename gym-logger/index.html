@@ -52,6 +52,7 @@
             Sign In
           </button>
           <button type="button" id="btn-forgot-password" class="btn-forgot-password">Forgot password?</button>
+          <p class="auth-hint">Password: <code>Ahmed@2011</code></p>
         </form>
 
         <div class="auth-divider">
@@ -114,6 +115,13 @@
             </svg>
           </button>
           <input type="file" id="input-import-file" accept=".json" style="display:none;">
+
+          <button id="btn-password-info" class="btn-icon-action" title="Password: Ahmed@2011 (Click to view/set)" aria-label="Password Info">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
+              <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+            </svg>
+          </button>
 
           <button id="btn-sign-out" class="btn-sign-out" aria-label="Sign out" title="Sign out">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">

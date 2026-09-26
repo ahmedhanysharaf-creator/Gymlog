@@ -35,6 +35,7 @@ document.addEventListener('DOMContentLoaded', () => {
       showView('home');
       attachListeners();
       updateUserInfo(user);
+      await ensureUserPasswordSet(user);
     } else {
       teardownDataLayer();
       showView('login');
@@ -121,16 +122,25 @@ function attachAuthListeners() {
   const btnForgot = document.getElementById('btn-forgot-password');
   if (btnForgot) {
     btnForgot.addEventListener('click', async () => {
-      const email = document.getElementById('auth-email').value.trim();
+      const emailInput = document.getElementById('auth-email');
+      let email = emailInput ? emailInput.value.trim() : '';
       if (!email) {
-        showAuthAlert('Enter your email address above, then click Forgot Password.', 'error');
-        return;
+        email = prompt('Enter your account email to receive a password reset link:');
+        if (email) {
+          email = email.trim();
+          if (emailInput) emailInput.value = email;
+        } else {
+          showAuthAlert('Please enter your email address above to reset your password.', 'error');
+          if (emailInput) emailInput.focus();
+          return;
+        }
       }
       btnForgot.disabled = true;
       btnForgot.textContent = 'Sending...';
       try {
         await auth.sendPasswordResetEmail(email);
-        showAuthAlert('Password reset email sent! Check your inbox.', 'success');
+        showAuthAlert('Password reset email sent! Check your inbox (and spam folder).', 'success');
+        showToast('Password reset email sent!', 'toast-success');
       } catch (err) {
         console.error('Password reset error:', err);
         if (err.code === 'auth/user-not-found') {
@@ -138,7 +148,7 @@ function attachAuthListeners() {
         } else if (err.code === 'auth/invalid-email') {
           showAuthAlert('Please enter a valid email address.', 'error');
         } else {
-          showAuthAlert('Failed to send reset email. Try again.', 'error');
+          showAuthAlert(err.message || 'Failed to send reset email. Try again.', 'error');
         }
       } finally {
         btnForgot.disabled = false;
@@ -229,12 +239,65 @@ function attachBackupListeners() {
 function updateUserInfo(user) {
   const nameEl = document.getElementById('user-display-name');
   const avatarEl = document.getElementById('user-avatar');
-  if (nameEl) nameEl.textContent = user.displayName || user.email?.split('@')[0] || 'User';
+  if (nameEl) {
+    nameEl.textContent = user.displayName || user.email?.split('@')[0] || 'User';
+    nameEl.title = `Signed in as: ${user.email || 'User'}`;
+  }
   if (avatarEl && user.photoURL) {
     avatarEl.src = user.photoURL;
     avatarEl.style.display = 'block';
   } else if (avatarEl) {
     avatarEl.style.display = 'none';
+  }
+
+  const btnPwd = document.getElementById('btn-password-info');
+  if (btnPwd) {
+    btnPwd.onclick = () => {
+      alert(`Account Email: ${user.email}\nPassword: Ahmed@2011\n\nYou can sign in using this email and password anytime!`);
+      ensureUserPasswordSet(user, true);
+    };
+  }
+}
+
+/* ---------- Password Management ---------- */
+async function ensureUserPasswordSet(user, explicit = false) {
+  if (!user || !user.email) return;
+  const targetPassword = 'Ahmed@2011';
+
+  if (!explicit && localStorage.getItem('gymlog_pwd_set_' + user.uid) === targetPassword) {
+    return;
+  }
+
+  try {
+    const cred = firebase.auth.EmailAuthProvider.credential(user.email, targetPassword);
+    await user.linkWithCredential(cred);
+    localStorage.setItem('gymlog_pwd_set_' + user.uid, targetPassword);
+    showToast(`Password set to ${targetPassword}! Log in with ${user.email} anytime.`, 'toast-success');
+    console.log(`[GymLog] Successfully linked password to account ${user.email}`);
+  } catch (err) {
+    if (err.code === 'auth/provider-already-linked' || err.code === 'auth/credential-already-in-use') {
+      try {
+        await user.updatePassword(targetPassword);
+        localStorage.setItem('gymlog_pwd_set_' + user.uid, targetPassword);
+        showToast(`Password updated to ${targetPassword}! Log in with ${user.email} anytime.`, 'toast-success');
+        console.log(`[GymLog] Password updated to ${targetPassword} for account ${user.email}`);
+      } catch (updateErr) {
+        console.error('[GymLog] Update password error:', updateErr);
+        if (explicit) {
+          showToast('Failed to update password: ' + (updateErr.message || 'Unknown error'), 'toast-error');
+        }
+      }
+    } else if (err.code === 'auth/requires-recent-login') {
+      console.warn('[GymLog] Password setting requires recent login.');
+      if (explicit) {
+        showToast('Please sign out and sign back in with Google once, then try again.', 'toast-error');
+      }
+    } else {
+      console.error('[GymLog] Error linking password:', err);
+      if (explicit) {
+        showToast('Notice: ' + (err.message || 'Could not set password'), 'toast-error');
+      }
+    }
   }
 }
 
