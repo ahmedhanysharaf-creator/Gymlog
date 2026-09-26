@@ -68,23 +68,14 @@
           <img id="user-avatar" class="user-avatar" src="" alt="Avatar" style="display:none;">
           <span id="user-display-name" class="user-name"></span>
           
-          <!-- Data Backup & Restore Action Buttons -->
-          <button id="btn-export-json" class="btn-icon-action" title="Export Backup JSON" aria-label="Export Backup">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/>
-              <polyline points="7 10 12 15 17 10"/>
-              <line x1="12" y1="15" x2="12" y2="3"/>
+          <!-- AI Training Analysis Export Button -->
+          <button id="btn-ai-export" class="btn-ai-export" title="Export training data for AI analysis" aria-label="AI Training Analysis">
+            <svg class="ai-spark-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M12 2l2.4 5.6L20 10l-5.6 2.4L12 18l-2.4-5.6L4 10l5.6-2.4L12 2z"/>
+              <path d="M19 16l1.2 2.8L23 20l-2.8 1.2L19 24l-1.2-2.8L15 20l2.8-1.2L19 16z"/>
             </svg>
+            <span class="btn-ai-export-text">AI Export</span>
           </button>
-          
-          <button id="btn-import-json" class="btn-icon-action" title="Import Backup JSON" aria-label="Import Backup">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/>
-              <polyline points="17 8 12 3 7 8"/>
-              <line x1="12" y1="3" x2="12" y2="15"/>
-            </svg>
-          </button>
-          <input type="file" id="input-import-file" accept=".json" style="display:none;">
 
           <button id="btn-sign-out" class="btn-sign-out" aria-label="Sign out" title="Sign out">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -586,6 +577,109 @@
           Delete Workout
         </button>
         <button id="btn-action-cancel" class="btn-action btn-action-cancel">Cancel</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: AI Training Export -->
+  <div id="modal-ai-export" class="modal-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="ai-export-title">
+    <div class="modal ai-modal">
+      <div class="ai-modal-header">
+        <div class="ai-modal-title-wrap">
+          <div class="ai-modal-icon">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M12 2l2.4 5.6L20 10l-5.6 2.4L12 18l-2.4-5.6L4 10l5.6-2.4L12 2z"/>
+              <path d="M19 16l1.2 2.8L23 20l-2.8 1.2L19 24l-1.2-2.8L15 20l2.8-1.2L19 16z"/>
+            </svg>
+          </div>
+          <div>
+            <h3 id="ai-export-title">Export for AI Analysis</h3>
+            <p class="ai-modal-sub">Generate a structured report ready for ChatGPT, Claude, or Gemini to analyze your training.</p>
+          </div>
+        </div>
+        <button id="btn-ai-modal-close" class="btn-modal-close" aria-label="Close modal">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="18" y1="6" x2="6" y2="18"></line>
+            <line x1="6" y1="6" x2="18" y2="18"></line>
+          </svg>
+        </button>
+      </div>
+
+      <div class="ai-section-label">Select Time Period</div>
+      <div class="ai-period-selector" role="group" aria-label="Export Period">
+        <button type="button" class="ai-period-btn active" data-period="week">This Week</button>
+        <button type="button" class="ai-period-btn" data-period="month">This Month</button>
+        <button type="button" class="ai-period-btn" data-period="all">All Time</button>
+        <button type="button" class="ai-period-btn" data-period="custom">Custom</button>
+      </div>
+
+      <!-- Custom Date Range (shown when custom is selected) -->
+      <div id="ai-custom-dates" class="ai-custom-dates hidden">
+        <div class="ai-date-field">
+          <label for="ai-date-start">From</label>
+          <input type="date" id="ai-date-start" class="ai-date-input">
+        </div>
+        <div class="ai-date-field">
+          <label for="ai-date-end">To</label>
+          <input type="date" id="ai-date-end" class="ai-date-input">
+        </div>
+      </div>
+
+      <!-- Live Summary Preview Card -->
+      <div class="ai-preview-card">
+        <div class="ai-preview-header">
+          <span class="ai-preview-label">Selected Period</span>
+          <span id="ai-preview-range" class="ai-preview-range">Calculating...</span>
+        </div>
+        <div class="ai-preview-stats">
+          <div class="ai-stat-box">
+            <span id="ai-stat-workouts" class="ai-stat-val">0</span>
+            <span class="ai-stat-lbl">Workouts</span>
+          </div>
+          <div class="ai-stat-box">
+            <span id="ai-stat-sets" class="ai-stat-val">0</span>
+            <span class="ai-stat-lbl">Sets</span>
+          </div>
+          <div class="ai-stat-box">
+            <span id="ai-stat-volume" class="ai-stat-val">0 kg</span>
+            <span class="ai-stat-lbl">Total Volume</span>
+          </div>
+        </div>
+        <div id="ai-empty-notice" class="ai-empty-notice hidden">
+          ⚠️ No workouts found in this period.
+        </div>
+      </div>
+
+      <!-- File format option -->
+      <div class="ai-format-row">
+        <span class="ai-format-label">Format:</span>
+        <label class="ai-format-radio">
+          <input type="radio" name="ai-export-format" value="md" checked>
+          <span>Markdown (.md) — Recommended</span>
+        </label>
+        <label class="ai-format-radio">
+          <input type="radio" name="ai-export-format" value="txt">
+          <span>Text (.txt)</span>
+        </label>
+      </div>
+
+      <!-- Action buttons -->
+      <div class="ai-modal-actions">
+        <button id="btn-ai-copy-prompt" class="btn btn-secondary ai-btn-copy" title="Copy formatted text to clipboard to paste directly into AI">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+            <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+          </svg>
+          <span>Copy for AI</span>
+        </button>
+        <button id="btn-ai-download-file" class="btn btn-primary ai-btn-download">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+            <polyline points="7 10 12 15 17 10"></polyline>
+            <line x1="12" y1="15" x2="12" y2="3"></line>
+          </svg>
+          <span>Download File</span>
+        </button>
       </div>
     </div>
   </div>

@@ -21,10 +21,10 @@ const state = {
 let calendarInstance = null;
 let listenersAttached = false;
 
-/* ---------- Authentication & Backup ---------- */
+/* ---------- Authentication & AI Export ---------- */
 document.addEventListener('DOMContentLoaded', () => {
   attachAuthListeners();
-  attachBackupListeners();
+  attachAiExportListeners();
 
   auth.onAuthStateChanged(async (user) => {
     if (user) {
@@ -75,46 +75,183 @@ function attachAuthListeners() {
   }
 }
 
-function attachBackupListeners() {
-  const btnExport = document.getElementById('btn-export-json');
-  const btnImport = document.getElementById('btn-import-json');
-  const inputImport = document.getElementById('input-import-file');
+/* ---------- AI Training Export Modal & Controller ---------- */
+let currentAiExportPeriod = 'week';
 
-  if (btnExport) {
-    btnExport.addEventListener('click', () => {
+function attachAiExportListeners() {
+  const btnAiExport = document.getElementById('btn-ai-export');
+  const modal = document.getElementById('modal-ai-export');
+  const btnClose = document.getElementById('btn-ai-modal-close');
+  const periodButtons = document.querySelectorAll('.ai-period-btn');
+  const customDatesContainer = document.getElementById('ai-custom-dates');
+  const inputDateStart = document.getElementById('ai-date-start');
+  const inputDateEnd = document.getElementById('ai-date-end');
+  const btnDownload = document.getElementById('btn-ai-download-file');
+  const btnCopy = document.getElementById('btn-ai-copy-prompt');
+
+  if (!btnAiExport || !modal) return;
+
+  const now = new Date();
+  const past30 = new Date(now.getTime() - 30 * 86400000);
+  const toIso = (d) => {
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${y}-${m}-${day}`;
+  };
+
+  if (inputDateStart && !inputDateStart.value) inputDateStart.value = toIso(past30);
+  if (inputDateEnd && !inputDateEnd.value) inputDateEnd.value = toIso(now);
+
+  function updateAiPreview() {
+    const startVal = inputDateStart ? inputDateStart.value : null;
+    const endVal = inputDateEnd ? inputDateEnd.value : null;
+    const rangeData = getWorkoutsForPeriod(currentAiExportPeriod, startVal, endVal);
+
+    const rangeLabelEl = document.getElementById('ai-preview-range');
+    if (rangeLabelEl) {
+      if (currentAiExportPeriod === 'all') {
+        rangeLabelEl.textContent = `All Logged Data (${rangeData.startDate} – ${rangeData.endDate})`;
+      } else {
+        rangeLabelEl.textContent = `${rangeData.startDate} – ${rangeData.endDate}`;
+      }
+    }
+
+    let totalSets = 0;
+    let totalVolume = 0;
+    rangeData.workouts.forEach(w => {
+      if (w.sets && Array.isArray(w.sets)) {
+        w.sets.forEach(s => {
+          totalSets++;
+          const wt = parseFloat(s.weight) || 0;
+          const rp = parseInt(s.reps, 10) || 0;
+          if (wt > 0 && rp > 0) totalVolume += wt * rp;
+        });
+      }
+    });
+
+    const wCountEl = document.getElementById('ai-stat-workouts');
+    const sCountEl = document.getElementById('ai-stat-sets');
+    const vCountEl = document.getElementById('ai-stat-volume');
+    const emptyNotice = document.getElementById('ai-empty-notice');
+
+    if (wCountEl) wCountEl.textContent = rangeData.workouts.length;
+    if (sCountEl) sCountEl.textContent = totalSets;
+    if (vCountEl) vCountEl.textContent = `${totalVolume.toLocaleString()} kg`;
+
+    if (emptyNotice) {
+      if (rangeData.workouts.length === 0) {
+        emptyNotice.classList.remove('hidden');
+      } else {
+        emptyNotice.classList.add('hidden');
+      }
+    }
+
+    return rangeData;
+  }
+
+  function openAiModal() {
+    modal.classList.remove('hidden');
+    updateAiPreview();
+  }
+
+  function closeAiModal() {
+    modal.classList.add('hidden');
+  }
+
+  btnAiExport.addEventListener('click', openAiModal);
+  if (btnClose) btnClose.addEventListener('click', closeAiModal);
+
+  modal.addEventListener('click', (e) => {
+    if (e.target === modal) closeAiModal();
+  });
+
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && !modal.classList.contains('hidden')) {
+      closeAiModal();
+    }
+  });
+
+  periodButtons.forEach(btn => {
+    btn.addEventListener('click', () => {
+      periodButtons.forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      currentAiExportPeriod = btn.dataset.period;
+
+      if (currentAiExportPeriod === 'custom') {
+        customDatesContainer.classList.remove('hidden');
+      } else {
+        customDatesContainer.classList.add('hidden');
+      }
+
+      updateAiPreview();
+    });
+  });
+
+  if (inputDateStart) {
+    inputDateStart.addEventListener('change', () => {
+      if (currentAiExportPeriod === 'custom') updateAiPreview();
+    });
+  }
+  if (inputDateEnd) {
+    inputDateEnd.addEventListener('change', () => {
+      if (currentAiExportPeriod === 'custom') updateAiPreview();
+    });
+  }
+
+  function getSelectedFormat() {
+    const radio = document.querySelector('input[name="ai-export-format"]:checked');
+    return radio ? radio.value : 'md';
+  }
+
+  if (btnDownload) {
+    btnDownload.addEventListener('click', () => {
+      const startVal = inputDateStart ? inputDateStart.value : null;
+      const endVal = inputDateEnd ? inputDateEnd.value : null;
+      const rangeData = getWorkoutsForPeriod(currentAiExportPeriod, startVal, endVal);
+
+      const user = auth.currentUser;
+      const athleteName = user ? (user.displayName || user.email?.split('@')[0] || 'Athlete') : 'Athlete';
+      const report = generateAiTrainingReport(rangeData.workouts, rangeData, athleteName);
+      const format = getSelectedFormat();
+      const ext = format === 'txt' ? 'txt' : 'md';
+      const filename = `gymlog_training_${currentAiExportPeriod}_${rangeData.startDate}_to_${rangeData.endDate}.${ext}`;
+
       try {
-        exportDataToJson();
-        showToast('Backup JSON downloaded successfully!', 'toast-success');
+        downloadAiReportFile(filename, report, format);
+        showToast('AI Training Report downloaded! 🚀', 'toast-success');
+        closeAiModal();
       } catch (err) {
-        console.error('Export error:', err);
-        showToast('Failed to export backup.', 'toast-error');
+        console.error('Download error:', err);
+        showToast('Failed to download training file.', 'toast-error');
       }
     });
   }
 
-  if (btnImport && inputImport) {
-    btnImport.addEventListener('click', () => {
-      inputImport.click();
-    });
+  if (btnCopy) {
+    btnCopy.addEventListener('click', async () => {
+      const startVal = inputDateStart ? inputDateStart.value : null;
+      const endVal = inputDateEnd ? inputDateEnd.value : null;
+      const rangeData = getWorkoutsForPeriod(currentAiExportPeriod, startVal, endVal);
 
-    inputImport.addEventListener('change', async (e) => {
-      const file = e.target.files[0];
-      if (!file) return;
+      const user = auth.currentUser;
+      const athleteName = user ? (user.displayName || user.email?.split('@')[0] || 'Athlete') : 'Athlete';
+      const report = generateAiTrainingReport(rangeData.workouts, rangeData, athleteName);
 
       try {
-        const text = await file.text();
-        const jsonObj = JSON.parse(text);
-        showToast('Importing backup workouts...', 'toast-info');
-        const count = await importDataFromJson(jsonObj);
-        showToast(`Successfully imported ${count} workouts!`, 'toast-success');
-        if (typeof calendarInstance !== 'undefined' && calendarInstance) {
-          calendarInstance.refresh();
-        }
+        await navigator.clipboard.writeText(report);
+        showToast('Report copied! Paste directly into ChatGPT or Claude. ✨', 'toast-success');
+        closeAiModal();
       } catch (err) {
-        console.error('Import error:', err);
-        showToast(err.message || 'Failed to import JSON file. Please check file format.', 'toast-error');
-      } finally {
-        inputImport.value = '';
+        console.warn('Clipboard write error, falling back:', err);
+        const textArea = document.createElement('textarea');
+        textArea.value = report;
+        document.body.appendChild(textArea);
+        textArea.select();
+        document.execCommand('copy');
+        document.body.removeChild(textArea);
+        showToast('Report copied to clipboard! ✨', 'toast-success');
+        closeAiModal();
       }
     });
   }

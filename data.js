@@ -476,3 +476,260 @@ async function importDataFromJson(jsonObj) {
   return count;
 }
 
+/* ---------- AI Training Export & Analysis Report Generation ---------- */
+
+function getPeriodRange(period, customStart = null, customEnd = null) {
+  const now = new Date();
+  let startDate = '';
+  let endDate = '';
+  let label = '';
+
+  const toIso = (d) => {
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${y}-${m}-${day}`;
+  };
+
+  if (period === 'week') {
+    const d = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const day = d.getDay(); // 0 is Sunday
+    const start = new Date(d);
+    start.setDate(d.getDate() - day);
+    const end = new Date(start);
+    end.setDate(start.getDate() + 6);
+    startDate = toIso(start);
+    endDate = toIso(end);
+    label = 'This Week';
+  } else if (period === 'month') {
+    const start = new Date(now.getFullYear(), now.getMonth(), 1);
+    const end = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+    startDate = toIso(start);
+    endDate = toIso(end);
+    label = 'This Month';
+  } else if (period === 'all') {
+    const dates = workoutsCache.map(w => w.date).filter(Boolean).sort();
+    startDate = dates.length > 0 ? dates[0] : toIso(now);
+    endDate = dates.length > 0 ? dates[dates.length - 1] : toIso(now);
+    label = 'All Time';
+  } else if (period === 'custom') {
+    startDate = customStart || toIso(new Date(now.getTime() - 30 * 86400000));
+    endDate = customEnd || toIso(now);
+    label = `Custom Range`;
+  }
+
+  return { startDate, endDate, label, period };
+}
+
+function getWorkoutsForPeriod(period, customStart = null, customEnd = null) {
+  const range = getPeriodRange(period, customStart, customEnd);
+  const filtered = workoutsCache.filter(w => {
+    if (!w.date) return false;
+    if (period === 'all') return true;
+    return w.date >= range.startDate && w.date <= range.endDate;
+  });
+
+  // Sort chronologically ascending (oldest to newest for progressive overload tracking)
+  filtered.sort((a, b) => (a.date > b.date ? 1 : a.date < b.date ? -1 : 0));
+  return { ...range, workouts: filtered };
+}
+
+function generateAiTrainingReport(workouts, rangeInfo, athleteName = 'Athlete') {
+  let totalWorkingSets = 0;
+  let totalWarmupSets = 0;
+  let totalVolumeKg = 0;
+  let maxWeight = { weight: 0, exercise: 'None' };
+  let highStrainSets = [];
+  const exerciseSetCounts = {};
+  const categorySetCounts = {};
+  const bodyPartCounts = { upper: 0, lower: 0, warmup: 0 };
+  const equipmentCounts = { machine: 0, freeweight: 0, cardio: 0 };
+
+  workouts.forEach(w => {
+    const bp = w.bodyPart || 'other';
+    if (bodyPartCounts[bp] !== undefined) bodyPartCounts[bp]++;
+    else bodyPartCounts[bp] = (bodyPartCounts[bp] || 0) + 1;
+
+    const eq = w.equipmentType || 'other';
+    if (equipmentCounts[eq] !== undefined) equipmentCounts[eq]++;
+
+    if (w.warmupSets && Array.isArray(w.warmupSets)) {
+      totalWarmupSets += w.warmupSets.length;
+    }
+
+    if (w.sets && Array.isArray(w.sets)) {
+      w.sets.forEach((s, idx) => {
+        totalWorkingSets++;
+        const weight = parseFloat(s.weight) || 0;
+        const reps = parseInt(s.reps, 10) || 0;
+        if (weight > 0 && reps > 0) {
+          totalVolumeKg += weight * reps;
+          if (weight > maxWeight.weight) {
+            maxWeight = { weight, exercise: w.exercise || 'Unknown' };
+          }
+        }
+
+        const pain = parseInt(s.painLevel, 10) || 7;
+        if (pain >= 8) {
+          highStrainSets.push({
+            date: w.date,
+            exercise: w.exercise || 'Unnamed Exercise',
+            setNum: idx + 1,
+            pain,
+            weight,
+            reps
+          });
+        }
+
+        const exName = w.exercise || 'General Session';
+        exerciseSetCounts[exName] = (exerciseSetCounts[exName] || 0) + 1;
+
+        const cat = w.category || (w.bodyPart === 'warmup' ? 'Warm-up / Cardio' : 'General');
+        categorySetCounts[cat] = (categorySetCounts[cat] || 0) + 1;
+      });
+    }
+  });
+
+  const uniqueDays = [...new Set(workouts.map(w => w.date))].length;
+
+  let md = `# 🏋️ ATHLETE TRAINING & PERFORMANCE REPORT (FOR AI ANALYSIS)\n\n`;
+  md += `**Athlete / Account:** ${athleteName}\n`;
+  md += `**Analysis Period:** ${rangeInfo.label} (${rangeInfo.startDate} to ${rangeInfo.endDate})\n`;
+  md += `**Export Generated:** ${new Date().toLocaleString()}\n`;
+  md += `**Source:** GymLog Workout Tracker\n\n`;
+
+  md += `---\n\n`;
+  md += `## 🎯 SYSTEM PROMPT FOR THE AI COACH / ANALYZER\n`;
+  md += `> You are an elite Strength & Conditioning Coach, Sports Scientist, and Biomechanics Specialist.\n`;
+  md += `> Analyze the athlete's verified workout log below and provide a structured, in-depth evaluation covering:\n`;
+  md += `> 1. **Volume & Frequency**: Evaluate volume load (${totalVolumeKg.toLocaleString()} kg, ${totalWorkingSets} working sets across ${uniqueDays} training days). Are muscle group weekly sets within optimal MEV to MRV?\n`;
+  md += `> 2. **Progressive Overload & Intensity**: Evaluate loads, rep ranges, intensity distribution, and progression across sessions.\n`;
+  md += `> 3. **Fatigue & Injury Prevention**: Assess logged strain ratings (scale 1-10: 1-4 Low Effort, 5-6 Moderate, 7-8 Optimal training stimulus, 9-10 High Strain/Fatigue Risk). Highlight potential injury or overtraining flags.\n`;
+  md += `> 4. **Structural & Muscle Balance**: Review Push vs Pull ratios, Upper vs Lower distribution, and any neglected muscle groups.\n`;
+  md += `> 5. **Prioritized Action Plan**: Provide 3 to 5 clear, actionable recommendations for their next mesocycle.\n\n`;
+
+  md += `---\n\n`;
+  md += `## 📊 SUMMARY OVERVIEW\n`;
+  md += `- **Active Training Days:** ${uniqueDays} days\n`;
+  md += `- **Total Workout Entries:** ${workouts.length} entries\n`;
+  md += `- **Total Working Sets:** ${totalWorkingSets} sets\n`;
+  md += `- **Total Warm-up Sets:** ${totalWarmupSets} sets\n`;
+  md += `- **Total Volume Load:** ${totalVolumeKg.toLocaleString()} kg\n`;
+  md += `- **Heaviest Lift Recorded:** ${maxWeight.weight > 0 ? `${maxWeight.weight} kg (${maxWeight.exercise})` : 'N/A'}\n`;
+  md += `- **High Strain Sets (>= 8/10):** ${highStrainSets.length} sets flagged\n\n`;
+
+  md += `### Session Breakdown by Type:\n`;
+  md += `- **Upper Body:** ${bodyPartCounts.upper || 0} exercises/entries\n`;
+  md += `- **Lower Body:** ${bodyPartCounts.lower || 0} exercises/entries\n`;
+  md += `- **Warm-up & Cardio:** ${bodyPartCounts.warmup || 0} sessions\n\n`;
+
+  md += `### Sets Logged by Muscle Group / Category:\n`;
+  const catEntries = Object.entries(categorySetCounts);
+  if (catEntries.length > 0) {
+    catEntries.forEach(([cat, count]) => {
+      md += `- **${capitalize(cat)}**: ${count} working sets\n`;
+    });
+  } else {
+    md += `- *No working sets logged.*\n`;
+  }
+  md += `\n`;
+
+  if (highStrainSets.length > 0) {
+    md += `### ⚠️ Flagged High Effort / Strain Sets:\n`;
+    highStrainSets.forEach(h => {
+      md += `- **${h.date}** | ${h.exercise} (Set ${h.setNum}): ${h.weight} kg × ${h.reps} reps | Strain: **${h.pain}/10**\n`;
+    });
+    md += `\n`;
+  }
+
+  md += `---\n\n`;
+  md += `## 📅 CHRONOLOGICAL WORKOUT LOG\n\n`;
+
+  if (workouts.length === 0) {
+    md += `*No workouts recorded during this time period.*\n`;
+    return md;
+  }
+
+  // Group workouts by date
+  const groupedByDate = {};
+  workouts.forEach(w => {
+    if (!groupedByDate[w.date]) groupedByDate[w.date] = [];
+    groupedByDate[w.date].push(w);
+  });
+
+  let dayIdx = 1;
+  for (const [dateStr, dayWorkouts] of Object.entries(groupedByDate)) {
+    md += `### 🗓️ Day ${dayIdx}: ${dateStr} (${formatDate(dateStr)})\n`;
+
+    dayWorkouts.forEach((w, exIdx) => {
+      const isWarmup = w.bodyPart === 'warmup';
+      const isSprint = w.category === 'sprinting';
+
+      if (isWarmup) {
+        md += `#### ${exIdx + 1}. General Warm-up / Cardio\n`;
+        if (w.details) md += `- **Routine / Notes:** ${w.details}\n`;
+        md += `\n`;
+        return;
+      }
+
+      const bodyPartStr = w.bodyPart ? capitalize(w.bodyPart) : 'General';
+      const equipStr = w.equipmentType === 'machine' ? 'Machine' : 'Free Weight';
+      const catStr = w.category ? capitalize(w.category) : '';
+
+      md += `#### ${exIdx + 1}. ${w.exercise || 'Exercise'}\n`;
+      md += `- **Classification:** ${bodyPartStr} | ${equipStr}${catStr ? ` | ${catStr}` : ''}\n`;
+      if (w.attachment) md += `- **Attachment / Grip:** ${w.attachment}\n`;
+
+      if (w.warmupSets && w.warmupSets.length > 0) {
+        md += `- **Warm-up Sets:**\n`;
+        w.warmupSets.forEach((ws, wi) => {
+          md += `  - Warmup ${wi + 1}: ${ws.weight || 0} kg × ${ws.reps || 0} reps\n`;
+        });
+      }
+
+      if (w.sets && w.sets.length > 0) {
+        md += `- **Working Sets:**\n`;
+        let exVolume = 0;
+        w.sets.forEach((s, si) => {
+          const painVal = parseInt(s.painLevel, 10) || 7;
+          let strainLabel = 'Optimal';
+          if (painVal <= 4) strainLabel = 'Low effort';
+          else if (painVal <= 6) strainLabel = 'Moderate';
+          else if (painVal >= 9) strainLabel = 'High strain';
+
+          if (isSprint) {
+            md += `  - Set ${si + 1}: Distance: ${s.distance || 0}m | Time: ${s.time || 0}s | Load: ${s.weight || 0}kg | Strain: ${painVal}/10 (${strainLabel})\n`;
+          } else {
+            const wt = parseFloat(s.weight) || 0;
+            const rp = parseInt(s.reps, 10) || 0;
+            const vol = wt * rp;
+            exVolume += vol;
+            md += `  - Set ${si + 1}: ${wt} kg × ${rp} reps | Volume: ${vol.toLocaleString()} kg | Strain: ${painVal}/10 (${strainLabel})\n`;
+          }
+        });
+        if (!isSprint && exVolume > 0) {
+          md += `  - **Exercise Total Volume:** ${exVolume.toLocaleString()} kg\n`;
+        }
+      }
+      md += `\n`;
+    });
+
+    dayIdx++;
+  }
+
+  return md;
+}
+
+function downloadAiReportFile(filename, content, format = 'md') {
+  const mimeType = format === 'txt' ? 'text/plain;charset=utf-8' : 'text/markdown;charset=utf-8';
+  const blob = new Blob([content], { type: mimeType });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
