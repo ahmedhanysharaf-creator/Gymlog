@@ -2377,6 +2377,29 @@ input[type="range"]::-moz-range-thumb {
   font-weight: 700;
 }
 
+.btn-forgot-password {
+  background: none;
+  border: none;
+  color: var(--accent, #00d4ff);
+  font-size: 0.85rem;
+  font-weight: 500;
+  cursor: pointer;
+  padding: 8px 0 0;
+  width: 100%;
+  text-align: right;
+  transition: opacity var(--duration, 0.2s) var(--ease, ease);
+}
+
+.btn-forgot-password:hover {
+  opacity: 0.75;
+  text-decoration: underline;
+}
+
+.btn-forgot-password:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
 .auth-divider {
   display: flex;
   align-items: center;

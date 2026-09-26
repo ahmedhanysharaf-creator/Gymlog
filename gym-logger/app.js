@@ -118,6 +118,35 @@ function attachAuthListeners() {
     authAlert.classList.remove('hidden');
   }
 
+  const btnForgot = document.getElementById('btn-forgot-password');
+  if (btnForgot) {
+    btnForgot.addEventListener('click', async () => {
+      const email = document.getElementById('auth-email').value.trim();
+      if (!email) {
+        showAuthAlert('Enter your email address above, then click Forgot Password.', 'error');
+        return;
+      }
+      btnForgot.disabled = true;
+      btnForgot.textContent = 'Sending...';
+      try {
+        await auth.sendPasswordResetEmail(email);
+        showAuthAlert('Password reset email sent! Check your inbox.', 'success');
+      } catch (err) {
+        console.error('Password reset error:', err);
+        if (err.code === 'auth/user-not-found') {
+          showAuthAlert('No account found with this email.', 'error');
+        } else if (err.code === 'auth/invalid-email') {
+          showAuthAlert('Please enter a valid email address.', 'error');
+        } else {
+          showAuthAlert('Failed to send reset email. Try again.', 'error');
+        }
+      } finally {
+        btnForgot.disabled = false;
+        btnForgot.textContent = 'Forgot password?';
+      }
+    });
+  }
+
   const btnGoogle = document.getElementById('btn-google-signin');
   if (btnGoogle) {
     btnGoogle.addEventListener('click', async () => {
