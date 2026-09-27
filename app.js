@@ -142,8 +142,10 @@ function attachAiExportListeners() {
     if (emptyNotice) {
       if (rangeData.workouts.length === 0) {
         emptyNotice.classList.remove('hidden');
+        emptyNotice.style.display = 'block';
       } else {
         emptyNotice.classList.add('hidden');
+        emptyNotice.style.display = 'none';
       }
     }
 
@@ -151,12 +153,22 @@ function attachAiExportListeners() {
   }
 
   function openAiModal() {
+    currentAiExportPeriod = 'week';
+    periodButtons.forEach(b => b.classList.remove('active'));
+    const defaultBtn = document.querySelector('.ai-period-btn[data-period="week"]');
+    if (defaultBtn) defaultBtn.classList.add('active');
+    if (customDatesContainer) {
+      customDatesContainer.classList.add('hidden');
+      customDatesContainer.style.display = 'none';
+    }
     modal.classList.remove('hidden');
+    modal.style.display = 'flex';
     updateAiPreview();
   }
 
   function closeAiModal() {
     modal.classList.add('hidden');
+    modal.style.display = 'none';
   }
 
   btnAiExport.addEventListener('click', openAiModal);
@@ -180,8 +192,10 @@ function attachAiExportListeners() {
 
       if (currentAiExportPeriod === 'custom') {
         customDatesContainer.classList.remove('hidden');
+        customDatesContainer.style.display = 'flex';
       } else {
         customDatesContainer.classList.add('hidden');
+        customDatesContainer.style.display = 'none';
       }
 
       updateAiPreview();

@@ -2813,6 +2813,7 @@ input[type="range"]::-moz-range-thumb {
 .mb-16 { margin-bottom: 16px; }
 .gap-12 { gap: 12px; }
 .text-center { text-align: center; }
+.hidden { display: none !important; }
 
 /* ============================================
    AI Training Analysis Export Button & Modal
@@ -3002,19 +3003,52 @@ input[type="range"]::-moz-range-thumb {
 .ai-date-input {
   width: 100%;
   padding: 10px 12px;
-  background: var(--bg-input);
-  border: 1px solid var(--border);
+  background-color: #000000 !important;
+  background: #000000 !important;
+  border: 1px solid rgba(56, 189, 248, 0.4) !important;
   border-radius: var(--r-md);
-  color: var(--text);
+  color: #38bdf8 !important;
+  color-scheme: dark !important;
   font-family: var(--font);
-  font-size: 0.85rem;
+  font-size: 0.95rem;
+  font-weight: 600;
+  -webkit-appearance: none;
+  appearance: none;
   transition: all var(--duration) var(--ease);
 }
 
 .ai-date-input:focus {
   outline: none;
-  border-color: var(--accent);
-  box-shadow: 0 0 0 3px var(--accent-glow);
+  border-color: #38bdf8 !important;
+  box-shadow: 0 0 0 3px rgba(56, 189, 248, 0.25);
+}
+
+.ai-date-input::-webkit-datetime-edit {
+  color: #38bdf8 !important;
+  background: transparent !important;
+}
+
+.ai-date-input::-webkit-datetime-edit-fields-wrapper {
+  background: transparent !important;
+}
+
+.ai-date-input::-webkit-datetime-edit-text {
+  color: #60a5fa !important;
+  padding: 0 2px;
+}
+
+.ai-date-input::-webkit-datetime-edit-month-field,
+.ai-date-input::-webkit-datetime-edit-day-field,
+.ai-date-input::-webkit-datetime-edit-year-field {
+  color: #38bdf8 !important;
+  background: transparent !important;
+  font-weight: 700;
+}
+
+.ai-date-input::-webkit-calendar-picker-indicator {
+  filter: invert(1) hue-rotate(180deg) brightness(1.5);
+  cursor: pointer;
+  opacity: 0.85;
 }
 
 /* Live summary preview card */
@@ -3062,9 +3096,10 @@ input[type="range"]::-moz-range-thumb {
 }
 
 .ai-stat-val {
-  font-size: 1.05rem;
-  font-weight: 700;
-  color: var(--text);
+  font-size: 1.15rem;
+  font-weight: 800;
+  color: #38bdf8 !important;
+  text-shadow: 0 0 10px rgba(56, 189, 248, 0.25);
 }
 
 .ai-stat-lbl {

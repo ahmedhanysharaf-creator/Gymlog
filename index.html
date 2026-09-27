@@ -8,7 +8,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="styles.css">
+  <link rel="stylesheet" href="styles.css?v=2.3">
   <meta name="theme-color" content="#06060b">
 </head>
 <body>
@@ -582,7 +582,7 @@
   </div>
 
   <!-- Modal: AI Training Export -->
-  <div id="modal-ai-export" class="modal-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="ai-export-title">
+  <div id="modal-ai-export" class="modal-overlay hidden" style="display:none;" role="dialog" aria-modal="true" aria-labelledby="ai-export-title">
     <div class="modal ai-modal">
       <div class="ai-modal-header">
         <div class="ai-modal-title-wrap">
@@ -614,14 +614,14 @@
       </div>
 
       <!-- Custom Date Range (shown when custom is selected) -->
-      <div id="ai-custom-dates" class="ai-custom-dates hidden">
+      <div id="ai-custom-dates" class="ai-custom-dates hidden" style="display:none;">
         <div class="ai-date-field">
           <label for="ai-date-start">From</label>
-          <input type="date" id="ai-date-start" class="ai-date-input">
+          <input type="date" id="ai-date-start" class="ai-date-input" style="background-color:#000000 !important; background:#000000 !important; color:#38bdf8 !important; color-scheme:dark !important;">
         </div>
         <div class="ai-date-field">
           <label for="ai-date-end">To</label>
-          <input type="date" id="ai-date-end" class="ai-date-input">
+          <input type="date" id="ai-date-end" class="ai-date-input" style="background-color:#000000 !important; background:#000000 !important; color:#38bdf8 !important; color-scheme:dark !important;">
         </div>
       </div>
 
@@ -633,19 +633,19 @@
         </div>
         <div class="ai-preview-stats">
           <div class="ai-stat-box">
-            <span id="ai-stat-workouts" class="ai-stat-val">0</span>
+            <span id="ai-stat-workouts" class="ai-stat-val" style="color:#38bdf8 !important;">0</span>
             <span class="ai-stat-lbl">Workouts</span>
           </div>
           <div class="ai-stat-box">
-            <span id="ai-stat-sets" class="ai-stat-val">0</span>
+            <span id="ai-stat-sets" class="ai-stat-val" style="color:#38bdf8 !important;">0</span>
             <span class="ai-stat-lbl">Sets</span>
           </div>
           <div class="ai-stat-box">
-            <span id="ai-stat-volume" class="ai-stat-val">0 kg</span>
+            <span id="ai-stat-volume" class="ai-stat-val" style="color:#38bdf8 !important;">0 kg</span>
             <span class="ai-stat-lbl">Total Volume</span>
           </div>
         </div>
-        <div id="ai-empty-notice" class="ai-empty-notice hidden">
+        <div id="ai-empty-notice" class="ai-empty-notice hidden" style="display:none;">
           ⚠️ No workouts found in this period.
         </div>
       </div>
